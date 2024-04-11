@@ -1,59 +1,110 @@
-import threading
+from threading import Thread
 
-from ibapi.common import BarData
-from ibapi.contract import Contract
-from ibapi.wrapper import EWrapper
 from ibapi.client import EClient
+from ibapi.wrapper import EWrapper
+from ibapi.contract import Contract
+from ibapi.order import Order
 
 
-class Wrapper(EWrapper):
+class TestApp(EWrapper, EClient):
     def __init__(self):
-        super().__init__()
+        EClient.__init__(self, self)
         self.data = []
 
-    def historicalData(self, reqId, bar):
-        self.data.append([bar.date, bar.open, bar.high, bar.low, bar.close, bar.volume])
+    def orderStatus(self, orderId: int, status: str, filled: float, remaining: float,
+                    avgFillPrice: float, permId: int, parentId: int, lastFillPrice: float,
+                    clientId: int, whyHeld: str, mktCapPrice: float):
+        print("OrderStatus. Id:", orderId, "Status:", status, "Filled:", filled,
+              "Remaining:", remaining, "AvgFillPrice:", avgFillPrice,
+              "LastFillPrice:", lastFillPrice, "WhyHeld:", whyHeld)
+        self.data = {
+            "orderId": orderId,
+            "status": status,
+            "filled": filled,
+            "remaining": remaining,
+            "avgFillPrice": avgFillPrice,
+            "lastFillPrice": lastFillPrice,
+            "whyHeld": whyHeld
+        }
+
+    def openOrder(self, orderId: int, contract: Contract, order: Order, orderState):
+        print("OpenOrder. ID:", orderId, contract.symbol, contract.secType,
+              "@", contract.exchange, ":", order.action, order.orderType, order.totalQuantity, orderState.status)
+        self.data = {
+            "orderId": orderId,
+            "contract": contract,
+            "order": order,
+            "orderState": orderState
+        }
+
+    def execDetails(self, reqId, contract, execution):
+        print("ExecDetails. ", reqId, contract.symbol, contract.secType, "ExecPrice:", execution.price,
+              "ExecTime:", execution.time)
 
 
-class Client(EClient):
-    def __init__(self, wrapper: EWrapper = None):
-        super().__init__(wrapper=wrapper or Wrapper())
-
-    def historical(self, ticker: str):
-        contract = Contract()
-        contract.symbol = ticker
-        contract.secType = "STK"
-        contract.exchange = "SMART"
-        contract.currency = "USD"
-
-        # set 15 min delay
-        self.reqMarketDataType(4)
-
-        self.reqHistoricalData(1, contract, "", "1 D", "1 min", "TRADES", 0, 1, False, [])
-
-        # self.run() and self.wrapper.run() are blocking calls
-        # so call and break when data is received
-        thread = threading.Thread(target=self.run)
-        thread.start()
-
-        while not self.wrapper.data:
-            pass
-        thread.join()
-
-        return self.wrapper.data
+def create_contract(symbol, secType, exchange, currency):
+    contract = Contract()
+    contract.symbol = symbol
+    contract.secType = secType
+    contract.exchange = exchange
+    contract.currency = currency
+    return contract
 
 
-class Interactive:
-    def __init__(self):
-        self.client = Client()
+def create_order(action, quantity, orderType):
+    order = Order()
+    order.action = action
+    order.totalQuantity = quantity
+    order.orderType = orderType
+    # Remove eTradeOnly
+    order.eTradeOnly = ''
+    # Remove FirmQuoteOnly
+    order.firmQuoteOnly = ''
+    return order
 
-    def historical(self, ticker: str):
-        return self.client.historical(ticker)
+
+def main():
+    app = TestApp()
+
+    app.connect("127.0.0.1", 4002, clientId=0)
+    # Example: Create contract and order
+    contract = create_contract("AAPL", "STK", "SMART", "USD")
+    order = create_order("BUY", 100, "MKT")
+
+    order.orderId = 1
+
+    app.placeOrder(1, contract, order)
+
+    thread = Thread(target=app.run)
+    thread.start()
+
+    while not app.data:
+        pass
+
+    print(app.data)
+    app.data = []
+
+    app.disconnect()
+    thread.join()
+    print("\n\n")
+    # delete order, get current open orders
+    app.connect("127.0.01", 4002, clientId=0)
+    app.cancelOrder(1)
+
+    thread = Thread(target=app.run)
+    thread.start()
+
+    while not app.data:
+        pass
+
+    print(app.data)
+    app.data = []
+
+    app.disconnect()
+    thread.join()
 
 
-# connect 127.0.0.1 4001 0
-ib = Interactive()
-ib.client.connect("127.0.0.1", 4001, 0)
-data = ib.historical("AAPL")
-ib.client.disconnect()
-print(data)
+
+
+if __name__ == "__main__":
+    main()

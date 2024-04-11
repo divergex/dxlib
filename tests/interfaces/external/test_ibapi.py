@@ -1,6 +1,6 @@
 import unittest
 
-from dxlib.interfaces import ibkr
+from dxlib.interfaces.external import ibkr
 
 
 class InteractiveBrokersApi(unittest.TestCase):
