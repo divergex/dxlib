@@ -65,3 +65,26 @@ class BSMModel:
             return -K * T * np.exp(-r * T) * norm.cdf(-d_minus)
         else:
             raise ValueError("Invalid option type.")
+
+    def _newton(self, f, x0, tol):
+        """
+        Newton's method for root finding.
+        """
+        x = x0
+        while True:
+            x1 = x - f(x) / (f(x + 1e-6) - f(x))
+            if abs(x1 - x) < tol:
+                return x1
+            x = x1
+
+    def implied_volatility(self, S, K, T, r, d, price, option_type: str = "call", method: callable = None):
+        """
+        Calculate the implied volatility of an option.
+        """
+        def f(sigma):
+            return self.price(S, K, T, r, d, sigma, option_type) - price
+
+        if method is None:
+            method = self._newton
+
+        return method(f, 0.1, 1e-6)
