@@ -1,1 +1,1 @@
-from .ibkr_api import InteractiveBrokersApi
+from .ibkr_api import InteractiveBrokersAPI
