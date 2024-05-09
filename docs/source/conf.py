@@ -53,7 +53,7 @@ html_logo = "_static/logo_small.png"
 html_theme_options = {
     "source_repository": "https://github.com/divergex/dxlib/",
     "source_branch": "main",
-    "source_directory": "docs/",
+    "source_directory": "docs/source/",
 }
 
 exec_code_working_dir = '../..'
