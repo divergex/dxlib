@@ -22,20 +22,16 @@ Check out the :doc:`getting_started/index` section for further information.
 
 
 Getting Started:
-================
+----------------
 .. toctree::
    :caption: Overview
-   :maxdepth: 1
 
    getting_started/index
    getting_started/installation
    getting_started/quickstart
 
 
-Modules
-=======
 .. toctree::
-   :caption: Modules
-   :maxdepth: 1
+   :caption: Documentation
 
    modules/index
