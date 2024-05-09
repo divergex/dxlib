@@ -24,8 +24,14 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.autosummary",
-    # "sphinx_copybutton",
+    "sphinx_copybutton",
     'sphinx_exec_code',
+    "sphinx.ext.mathjax",
+    "sphinx.ext.viewcode",
+    "furo.sphinxext",
+    "sphinx_design",
+    "sphinx_inline_tabs",
+    "sphinxext.opengraph",
 ]
 
 templates_path = ["_templates"]
@@ -33,15 +39,21 @@ exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-html_title = 'dxlib'
-html_theme = 'sphinxawesome_theme'
-extensions += ["sphinxawesome_theme.highlighting"]
+# html_title = ('<img src="https://avatars.githubusercontent.com/u/116703758?s=200&v=4" alt="dxlib" width="25" '
+#               'height="25" align="middle" style="margin-bottom: 15px"> dxlib')
+html_theme = "furo"
+# extensions += ["sphinxawesome_theme.highlighting"]
 html_static_path = ["_static"]
 html_favicon = "_static/favicon.ico"
-html_sidebars = {
-    '**': [
-        'globaltoc.html',
-    ],
+# html_sidebars = {
+#     '**': [
+#     ],
+# }
+html_logo = "_static/logo_small.png"
+html_theme_options = {
+    "source_repository": "https://github.com/divergex/dxlib/",
+    "source_branch": "main",
+    "source_directory": "docs/",
 }
 
 exec_code_working_dir = '../..'

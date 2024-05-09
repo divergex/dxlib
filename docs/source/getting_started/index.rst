@@ -3,14 +3,15 @@ Getting Started
 
 Welcome to the getting started guide for dxlib! This guide will walk you through the initial steps to install, set up, and start using dxlib in your Python projects.
 
-What is dxlib for?
-------------------
+--------------
+What is dxlib?
+--------------
 
-dxlib is a powerful Python library designed specifically for quantitative finance, offering a comprehensive suite of tools for financial modeling, analysis, and algorithmic trading. Whether you're a quantitative analyst, algorithmic trader, or financial researcher, dxlib provides the building blocks needed to develop sophisticated trading strategies, optimize portfolios, and analyze financial data with ease.
-
-.. container:: hidden
-
-   Title Here
+dxlib is a powerful Python library designed specifically for quantitative finance,
+offering a comprehensive suite of tools for financial modeling, analysis, and algorithmic trading.
+Whether you're a quantitative analyst, algorithmic trader, or financial researcher,
+dxlib provides the building blocks needed to develop sophisticated trading strategies,
+optimize portfolios, and analyze financial data with ease.
 
 - Core Components: dxlib's core includes essential components such as history objects for data storage and retrieval, strategy executors for executing trading strategies, inventory management for tracking positions, and security models for managing financial instruments.
 
@@ -24,9 +25,9 @@ dxlib is a powerful Python library designed specifically for quantitative financ
 
 - Interface Integration: dxlib seamlessly integrates with external data sources such as YFinance, Alpaca Markets, and IBKR, allowing users to access real-time market data and historical information. Additionally, internal interfaces facilitate communication between different components within the library, enabling efficient data flow and system integration.
 
-
-Who should use dxlib?
----------------------
+-----------------
+Who is dxlib for?
+-----------------
 
 - Backtesting Strategies: Use dxlib to backtest trading strategies against historical data, evaluate performance metrics, and refine strategies for live trading.
 
