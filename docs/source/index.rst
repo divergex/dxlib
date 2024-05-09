@@ -1,8 +1,3 @@
-.. dxlib documentation master file, created by
-sphinx-quickstart on Wed Nov 22 01:14:30 2023.
-You can adapt this file completely to your liking, but it should at least
-contain the root `toctree` directive.
-
 Welcome to dxlib's documentation!
 =================================
 
@@ -20,7 +15,13 @@ Check out the :doc:`getting_started/index` section for further information.
 
    This project is under active development. The API is subject to change
 
+.. toctree::
+   :hidden:
+   :maxdepth: 3
 
+   modules/index
+
+----------------
 Getting Started:
 ----------------
 .. toctree::
@@ -30,8 +31,11 @@ Getting Started:
    getting_started/installation
    getting_started/quickstart
 
-
+---------
+Tutorials
+---------
 .. toctree::
-   :caption: Documentation
+   :caption: Tutorials
 
-   modules/index
+   tutorials/basic
+   tutorials/advanced
