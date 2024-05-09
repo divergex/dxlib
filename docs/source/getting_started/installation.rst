@@ -1,7 +1,5 @@
-.. _installation:
-
 Installation
-------------
+============
 
 To use **dxlib**, first install it using pip:
 
