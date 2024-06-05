@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from pandas import MultiIndex
 
@@ -61,23 +62,27 @@ class PairTradingStrategy(Strategy):
         df2 = history.get_df({SchemaLevel.SECURITY: [self.security2]}, [self.field])
 
         if len(df1) > self.window and len(df2) > self.window:
-            # Calculate the spread
-            spread = df1[self.field] - df2[self.field]
+            # Calculate the spread, cant just subtract since indices might not match
+            n = np.minimum(len(df1), len(df2))
+            spread = pd.DataFrame(df1.iloc[-n:][self.field].values, df2.iloc[-n:][self.field].values)
+
+            if len(spread) < self.window:
+                return signals
+
             mean_spread = spread.rolling(self.window).mean().iloc[-1]
-            std_spread = spread.rolling(self.window).std().iloc[-1]
+            std_spread = spread.rolling(self.window).std().fillna(1).iloc[-1]
 
             # Calculate the z-score of the current spread
             current_spread = spread.iloc[-1]
-            z_score = (current_spread - mean_spread) / std_spread
+            z_score = (current_spread - mean_spread) / (std_spread + 1e-6)
 
             # Generate signals based on z-score
-            if z_score > self.entry_z:
+            if (z_score > self.entry_z).all():
                 signals.loc[idx] = Signal(Side.SELL, self.quantity)
                 signals.loc[idx, self.security2] = Signal(Side.BUY, self.quantity)
-            elif z_score < -self.entry_z:
+            elif (z_score < -self.entry_z).all():
                 signals.loc[idx] = Signal(Side.BUY, self.quantity)
                 signals.loc[idx, self.security2] = Signal(Side.SELL, self.quantity)
-            elif abs(z_score) < self.exit_z:
+            elif (abs(z_score) < self.exit_z).all():
                 pass
-
         return signals
