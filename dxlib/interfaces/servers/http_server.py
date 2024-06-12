@@ -232,11 +232,15 @@ class HTTPServer(Server):
         except KeyboardInterrupt:
             self.logger.info("Server stopped by user")
 
-    def start(self) -> ServerStatus:
+    def start(self, threaded=True) -> ServerStatus:
         self.logger.info(f"HTTP server starting on address http://{self.host}:{self.port}")
         self._running.set()
-        self._thread = threading.Thread(target=self._serve)
-        self._thread.start()
+
+        if threaded:
+            self._thread = threading.Thread(target=self._serve)
+            self._thread.start()
+        else:
+            self._serve()
         return ServerStatus.STARTED
 
     def stop(self) -> ServerStatus:

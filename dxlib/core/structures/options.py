@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import enum
-
 from datetime import date
-from dateutil.utils import today
 
 import numpy as np
 from scipy.stats import norm
@@ -14,6 +12,10 @@ class Future:
         super().__init__(symbol, **kwargs)
 
         self.underlying = underlying
+
+
+def today():
+    return date.today()
 
 
 class ExerciseStyle(enum.Enum):
@@ -79,7 +81,7 @@ class Option:
 
     def days_to_expire(self):
         if isinstance(self.maturity, date):
-            return (self.maturity - today().date()).days
+            return (self.maturity - today()).days
         else:
             return self.maturity * 360
 

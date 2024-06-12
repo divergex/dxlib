@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from statsmodels.tsa import seasonal
 
 from .indicators import Indicators
 
@@ -59,7 +58,3 @@ class SeriesIndicators(Indicators):
             for i in range(lag_range):
                 pacf_series.iloc[i] = cls.autocorrelation(series, lag=i)
             return pacf_series
-
-    @classmethod
-    def seasonal_decompose(cls, series, period=252):
-        return seasonal.seasonal_decompose(series, period=period)
