@@ -1,43 +1,47 @@
 import numpy as np
 import pandas as pd
+from pandas import MultiIndex
 
-from ...core import History, Strategy
+from ...core import History, Strategy, Inventory, Signal, Side, SchemaLevel
 
 
 class PairTradingStrategy(Strategy):
     """
-    A pair trading strategy that identifies trading opportunities between two correlated equities.
+    A strategy that generates buy/sell signals based on the spread between two correlated securities.
 
     Parameters:
-    - threshold (float): Z-score threshold to trigger trading signals.
+    - window (int): Number of days to calculate the rolling spread.
+    - entry_z (float): Z-score threshold to enter a trade.
+    - exit_z (float): Z-score threshold to exit a trade.
 
     Methods:
-    - fit(history): Identify suitable pairs based on correlation and other criteria.
-    - execute(row, idx, history) -> dict: Generate trading signals based on Z-score.
+    - fit(history): Calculate the spread and identify trading signals.
+    - execute(row, idx, history) -> dict: Generate trading signals based on the spread.
     """
 
-    def __init__(self, threshold=2.0):
+    def __init__(self,
+                 pairs: tuple,
+                 field="close",
+                 window=20,
+                 entry_z=2.0,
+                 exit_z=0.5,
+                 ):
         super().__init__()
-        self.threshold = threshold
-        self.pair = None
+        self.security1, self.security2 = pairs
+        self.field = field
+        self.window = window
+        self.entry_z = entry_z
+        self.exit_z = exit_z
+        self.quantity = 1
 
-    def fit(self, history):
-        """
-        Identify suitable pairs for trading based on correlation and other criteria.
-
-        Args:
-        - history (History): Historical price data of multiple equities.
-
-        Returns:
-        None
-        """
-        pass
+    def set(self, quantity: int):
+        self.quantity = quantity
 
     def execute(
-        self, idx: pd.Index, position: pd.Series, history: History
-    ) -> pd.Series:
+            self, observation: any, history: History, position: Inventory = None,
+    ) -> pd.Series:  # pd.Series[TradeSignal]
         """
-        Generate trading signals based on the Z-score of the selected equity pair.
+        Generate trading signals based on the spread between two securities.
 
         Args:
         - row (pd.Series): Latest row of equity prices.
@@ -47,15 +51,38 @@ class PairTradingStrategy(Strategy):
         Returns:
         dict: Trading signals for each equity.
         """
-        signals = pd.Series(TradeSignal(TransactionType.WAIT), index=position.index)
-        if self.pair is not None:
-            z_scores = (position[self.pair[0]] - position[self.pair[1]]) / np.std(
-                history[self.pair[0]] - history[self.pair[1]]
-            )
-            if z_scores > self.threshold:
-                signals[self.pair[0]] = TradeSignal(TransactionType.SELL, 1)
-                signals[self.pair[1]] = TradeSignal(TransactionType.BUY, 1)
-            elif z_scores < -self.threshold:
-                signals[self.pair[0]] = TradeSignal(TransactionType.BUY, 1)
-                signals[self.pair[1]] = TradeSignal(TransactionType.SELL, 1)
+        levels = history.levels_unique()
+        idx, _ = observation
+        signals = pd.Series(
+            Signal(Side.WAIT), index=MultiIndex.from_tuples([idx], names=levels.keys())
+        )
+
+        # Get historical data for the two securities
+        df1 = history.get_df({SchemaLevel.SECURITY: [self.security1]}, [self.field])
+        df2 = history.get_df({SchemaLevel.SECURITY: [self.security2]}, [self.field])
+
+        if len(df1) > self.window and len(df2) > self.window:
+            # Calculate the spread, cant just subtract since indices might not match
+            n = np.minimum(len(df1), len(df2))
+            spread = pd.DataFrame(df1.iloc[-n:][self.field].values, df2.iloc[-n:][self.field].values)
+
+            if len(spread) < self.window:
+                return signals
+
+            mean_spread = spread.rolling(self.window).mean().iloc[-1]
+            std_spread = spread.rolling(self.window).std().fillna(1).iloc[-1]
+
+            # Calculate the z-score of the current spread
+            current_spread = spread.iloc[-1]
+            z_score = (current_spread - mean_spread) / (std_spread + 1e-6)
+
+            # Generate signals based on z-score
+            if (z_score > self.entry_z).all():
+                signals.loc[idx] = Signal(Side.SELL, self.quantity)
+                signals.loc[idx, self.security2] = Signal(Side.BUY, self.quantity)
+            elif (z_score < -self.entry_z).all():
+                signals.loc[idx] = Signal(Side.BUY, self.quantity)
+                signals.loc[idx, self.security2] = Signal(Side.SELL, self.quantity)
+            elif (abs(z_score) < self.exit_z).all():
+                pass
         return signals

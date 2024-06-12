@@ -1,8 +1,6 @@
 Quickstart
 ==========
 
-.. _usage:
-
 Usage
 -----
 Defining the financial instruments and formats
