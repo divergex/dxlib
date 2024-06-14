@@ -12,11 +12,14 @@ with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
 try:
-    version = (
-        subprocess.run(["git", "describe", "--tags"], stdout=subprocess.PIPE)
-        .stdout.decode("utf-8")
-        .strip()
-    )
+    try:
+        version = (
+            subprocess.run(["git", "describe", "--tags"], stdout=subprocess.PIPE)
+            .stdout.decode("utf-8")
+            .strip()
+        )
+    except FileNotFoundError:
+        version = "0.0.1"
 
     if "-" in version:
         v, i, s = version.split("-")
@@ -29,8 +32,11 @@ except Exception as e:
     print(f"Warning: Unable to fetch version from Git. Using fallback version.")
     version = "0.0.1"  # Fallback version
 
-with open("dxlib/VERSION", "w", encoding="utf-8") as fh:
-    fh.write("%s\n" % version)
+try:
+    with open("dxlib/VERSION", "w", encoding="utf-8") as fh:
+        fh.write("%s\n" % version)
+except FileNotFoundError:
+    print(f"Warning: Unable to write version to file. Skipping.")
 
 setup(
     name="dxlib",
