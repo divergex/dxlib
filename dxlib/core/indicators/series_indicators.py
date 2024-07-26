@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 import pandas as pd
 
@@ -47,7 +49,7 @@ class SeriesIndicators(Indicators):
             return series.autocorr(lag=lag)
 
     @classmethod
-    def pacf(cls, series, lag_range=15) -> pd.Series | pd.DataFrame:
+    def pacf(cls, series, lag_range=15) -> Union[pd.Series, pd.DataFrame]:
         if isinstance(series, pd.DataFrame):
             pacf_series = pd.DataFrame(index=range(lag_range), columns=series.columns)
             for column in series.columns:
