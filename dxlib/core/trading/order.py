@@ -25,12 +25,12 @@ class OrderType(Enum):
 @dataclass
 class OrderData:
     def __init__(
-        self,
-        security: Security,
-        price: float | int = None,
-        quantity: float | int = 0,
-        side: Side | int = Side.BUY,
-        order_type: OrderType = OrderType.MARKET,
+            self,
+            security: Security,
+            price: float | int = None,
+            quantity: float | int = 0,
+            side: Side | int = Side.BUY,
+            order_type: OrderType = OrderType.MARKET,
     ):
         self.security = security
         self.price = price
@@ -81,9 +81,9 @@ class OrderData:
 
 class Order:
     def __init__(
-        self,
-        data: Union[OrderData, dict],
-        transactions: list[Transaction] = None,
+            self,
+            data: Union[OrderData, dict],
+            transactions: list[Transaction] = None,
     ):
         self._data = data
         self._transactions: list[Transaction] = transactions or []
@@ -124,3 +124,41 @@ class Order:
     @property
     def executed_quantity(self):
         return sum([t.quantity for t in self._transactions])
+
+    @property
+    def security(self):
+        return self._data.security
+
+    @property
+    def price(self):
+        return self._data.price
+
+    @property
+    def quantity(self):
+        return self._data.quantity
+
+    @quantity.setter
+    def quantity(self, quantity):
+        self._data.quantity = quantity
+
+    @property
+    def remaining_quantity(self):
+        return self._data.quantity - self.executed_quantity
+
+    @property
+    def side(self):
+        return self._data.side
+
+    @property
+    def order_type(self):
+        return self._data.order_type
+
+    @classmethod
+    def from_data(cls,
+                  security: Security,
+                  price: float | int = None,
+                  quantity: float | int = 0,
+                  side: Side | int = Side.BUY,
+                  order_type: OrderType = OrderType.MARKET
+                  ):
+        return cls(OrderData(security, price, quantity, side, order_type))

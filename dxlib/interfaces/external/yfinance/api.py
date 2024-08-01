@@ -11,7 +11,7 @@ from ..external_interface import MarketApi
 from ....core import History, SecurityManager, Schema, SchemaLevel
 
 
-class YFinanceAPI(MarketApi):
+class API(MarketApi):
     def __init__(self, base_url="https://query1.finance.yahoo.com/v8/finance/chart/"):
         super().__init__()
         self.base_url = base_url
@@ -143,7 +143,7 @@ class YFinanceAPI(MarketApi):
     def to_history(cls, df: pd.DataFrame, levels: list = None, _: list = None, __=None) -> History:
         df.index.name = "security"
         security_manager = SecurityManager.from_list(df.index.unique())
-        history = super(YFinanceAPI, cls).to_history(df,
+        history = super(API, cls).to_history(df,
                                                      levels, ["open", "high", "low", "close", "volume"],
                                                      security_manager)
         history.df = history.df.swaplevel(1, 0)
