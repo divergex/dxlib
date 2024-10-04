@@ -3,7 +3,7 @@ import unittest
 import pandas as pd
 
 from dxlib import History, HistorySchema, Executor, Strategy
-from tests.mock_data import Mock
+from test.mock_data import Mock
 
 
 class TestExecutor(unittest.TestCase):
@@ -21,13 +21,12 @@ class TestExecutor(unittest.TestCase):
 
         self.history = History(
             schema=Mock.schema,
-            data=Mock.tight_data
+            data=Mock.large_data
         )
 
     def test_executor(self):
         executor = Executor(self.strategy)
-        result = executor.run(self.history)
+        result = executor.run(self.history, groupby="date")
 
         self.assertEqual(result.schema, self.output_schema)
-        self.assertEqual(result.data.index.names, self.output_schema.index.keys())
-    
+        self.assertEqual(set(result.data.index.names), self.output_schema.index.keys())

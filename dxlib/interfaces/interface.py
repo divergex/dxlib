@@ -1,5 +1,7 @@
 from abc import ABC
 
+from .market_interface import MarketInterface
+
 
 class Interface(ABC):
-    pass
+    market_interface: 'MarketInterface'

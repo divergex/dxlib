@@ -18,15 +18,6 @@ class Security:
         self.name = name
         self.asset_class = asset_class
 
-    @property
-    @abstractmethod
-    def value(self):
-        raise NotImplementedError
-
-    @value.setter
-    def value(self, value):
-        raise NotImplementedError
-
     @abstractmethod
     def to_dict(self):
         raise NotImplementedError
@@ -39,7 +30,7 @@ class Security:
         return self.to_dict()
 
     def __str__(self):
-        return f"{self.__class__.__name__}({self.symbol}, {self.value})"
+        return f"{self.__class__.__name__}({self.symbol})"
 
 
 if __name__ == "__main__":

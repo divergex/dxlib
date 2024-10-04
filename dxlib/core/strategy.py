@@ -1,6 +1,13 @@
 from abc import ABC, abstractmethod
+from enum import Enum
 
 from .history import HistorySchema, History
+
+
+class Signal(Enum):
+    BUY = 1
+    SELL = -1
+    HOLD = 0
 
 
 class Strategy(ABC):
@@ -9,8 +16,8 @@ class Strategy(ABC):
 
     @abstractmethod
     def execute(self,
-                history: History,
                 observation: History,
+                history: History,
                 *args, **kwargs) -> History:
         """
         Receives a history of inputs, as well as the latest data point, and returns a history of outputs.

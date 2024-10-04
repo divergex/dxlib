@@ -1,8 +1,31 @@
+import json
 import unittest
 
-from dxlib import History
-from benchmark import Benchmark
-from tests.mock_data import Mock
+from dxlib import History, HistorySchema, Security
+from test.benchmark import Benchmark
+from test.mock_data import Mock
+
+
+class TestSchema(unittest.TestCase):
+    def test_create(self):
+        schema = Mock.schema
+        self.assertEqual(["security", "date"], schema.index_names)
+        self.assertEqual(["open", "close"], schema.column_names)
+        self.assertIs(schema.index["security"], str)
+
+    def test_serialize(self):
+        schema = Mock.schema
+        data = schema.to_dict()
+        schema2 = HistorySchema.from_dict(data)
+        self.assertEqual(schema.index_names, schema2.index_names)
+        self.assertEqual(schema.column_names, schema2.column_names)
+
+    def test_to_json(self):
+        schema = Mock.schema
+        to_json = schema.__json__()
+        expected_json = ('{"index": {"security": "str", "date": "Timestamp"}, '
+                         '"columns": {"open": "float", "close": "float"}}')
+        self.assertEqual(json.loads(to_json), json.loads(expected_json))
 
 
 class TestHistory(unittest.TestCase):

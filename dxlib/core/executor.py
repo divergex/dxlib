@@ -63,9 +63,10 @@ class Executor:
         for level in groupby:
             grouped = obj.data.groupby(level=level)
             for group_idx, observation in grouped:
-                # use obj.get_slice to get all data that happened up until the current observation
-                sliced_data = obj.get({obj.iidx(level): slice(None, group_idx)})
-                output = self.strategy(obj, sliced_data)
+                observation = obj.get({obj.iidx(level): group_idx})
+                # use obj.get_slice to get all data that happened up until the current observation: no look-forward bias
+                history = obj.get({obj.iidx(level): slice(None, group_idx)})
+                output = self.strategy(observation, history)
                 result.add(output)
 
         # Assuming you'd want to return some result or modified data

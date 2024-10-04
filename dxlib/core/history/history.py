@@ -1,24 +1,12 @@
-from typing import Dict, Type, List
+from typing import Dict, List
 
 import pandas as pd
 
-
-class HistorySchema:
-    """
-    A schema is the structure of a data set.
-    It contains the index names mapped to their respective types and levels,
-    as well as the column names mapped to their types.
-    """
-
-    def __init__(self, index: Dict[str, Type] = None, columns: Dict[str, Type] = None):
-        self.index: Dict[str, Type] = index
-        self.columns: Dict[str, Type] = columns
-
-    def __eq__(self, other):
-        return self.index == other.index and self.columns == other.columns
+from ...storage import Serializable, RegistryBase
+from .history_schema import HistorySchema
 
 
-class History:
+class History(Serializable, metaclass=RegistryBase):
     """
     A history is a term used to describe a collection of data points.
 
@@ -61,6 +49,8 @@ class History:
             if self.schema.index and self.schema.index.keys() != set(self.data.index.names):
                 raise ValueError("The index names do not match the schema.")
 
+    # region Abstract Properties
+
     def idx(self, name):
         """
         Get the level of the index by name.
@@ -99,6 +89,10 @@ class History:
             return self.data.index.get_level_values(self.idx(names)).unique().tolist()
         else:
             return {name: self.levels(name) for name in names}
+
+    # endregion
+
+    # region Manipulation
 
     def add(self, other: "History", keep="first") -> "History":
         """
@@ -166,8 +160,33 @@ class History:
 
         return data if raw else History(schema=self.schema, data=data)
 
+    # endregion
+
+    # region Properties
+
+    # region Custom Properties
+
+    def to_dict(self):
+        return {
+            "schema": self.schema.to_dict(),
+            "data": self.data.to_dict(orient="tight")
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        schema = data.get("schema", None)
+        data = data.get("data", pd.DataFrame())
+        return cls(schema=schema, data=data)
+
     def copy(self):
         return History(schema=self.schema, data=self.data.copy())
+
+    # endregion
+
+    # region Inbuilt Properties
+
+    def __len__(self):
+        return len(self.data)
 
     def __getitem__(self, key):
         return self.data[key]
@@ -186,12 +205,9 @@ class History:
         else:
             raise ValueError("Can only add History objects.")
 
-    def to_dict(self):
-        return self.data.to_dict()
+    def __repr__(self):
+        return f"History(schema={self.schema}, data={self.data})"
 
-    @classmethod
-    def from_dict(cls, data: dict, schema: HistorySchema):
-        return cls(schema=schema, data=pd.DataFrame.from_dict(data, orient="tight"))
+    # endregion
 
-    def __json__(self):
-        return self.to_dict()
+    # endregion

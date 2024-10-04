@@ -2,7 +2,7 @@ from typing import Dict
 
 import numpy as np
 
-from dxlib.security import Security
+from dxlib.core.security import Security
 
 
 class Portfolio:
@@ -17,6 +17,6 @@ class Portfolio:
 
     def value(self):
         """
-        Calculate the total value of the portfolio.
+        Calculate the total value of the portfolio. Sum position value if the security has a value attribute. If it does not, return 0.
         """
-        return np.sum([position.value for position in self.position])
+        return np.sum([getattr(position, 'value', 0) for position in self.position])

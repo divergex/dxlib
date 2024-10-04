@@ -1,9 +1,4 @@
-from enum import Enum
-
-import pandas as pd
-
-from .. import History, HistorySchema
-from ..core import Strategy
+from ..core import History, HistorySchema, Strategy, Signal
 
 
 def rsi(history, window=14):
@@ -31,13 +26,8 @@ def rsi(history, window=14):
     return rsi
 
 
-class Signal(Enum):
-    BUY = 1
-    SELL = -1
-    HOLD = 0
-
-
 class RsiStrategy(Strategy):
+    # TODO: Make a custom schema for this strategy. Should have a date and a security index.
     def __init__(self, output_schema: HistorySchema, window: int, upper: float, lower: float):
         super().__init__(output_schema)
         self.window = window
@@ -45,13 +35,14 @@ class RsiStrategy(Strategy):
         self.lower = lower
 
     def execute(self,
-                history: History,
                 observation: History,
+                history: History,
                 *args, **kwargs) -> History:
         """
         Execute trading signals based on the RSI indicator.
         """
-        rsi_values = rsi(observation, window=self.window)
+        rsi_values = rsi(history, window=self.window)
+        rsi_values = rsi_values.dropna()
         signals = []
         for rsi_value in rsi_values:
             if rsi_value > self.upper:

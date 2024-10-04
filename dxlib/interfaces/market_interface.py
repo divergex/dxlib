@@ -1,7 +1,9 @@
-from .interface import Interface
+from datetime import datetime
+
+from ..core import History, HistorySchema
 
 
-class MarketInterface(Interface):
+class MarketInterface:
     def quote(self) -> float:
         """
         Get the current price of the security.
@@ -11,5 +13,18 @@ class MarketInterface(Interface):
     def bar(self) -> float:
         """
         Get the current price of the security.
+        """
+        raise NotImplementedError
+
+    def history(self, symbols: list[str], start: datetime, end: datetime, interval: str) -> History:
+        """
+        Get the historical price of the security.
+        """
+        raise NotImplementedError
+
+    @property
+    def history_schema(self) -> HistorySchema:
+        """
+        Return the schema of the historical data.
         """
         raise NotImplementedError
