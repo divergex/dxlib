@@ -128,7 +128,10 @@ class Cache:
             bool: True if the cache exists, False otherwise.
         """
         storage_path = self._path(storage)
-        assert os.path.exists(storage_path)
+        try:
+            assert os.path.exists(storage_path)
+        except AssertionError:
+            return False
         with contextlib.suppress(FileNotFoundError):
             return object_type.cache_exists(storage_path, key)
 
@@ -147,7 +150,7 @@ class Cache:
         """
         cache_path = self._path(storage)
         if not os.path.exists(cache_path):
-            raise FileNotFoundError(f"No cache found for '{storage}'.")
+            os.makedirs(cache_path)
 
         return cache_path, key
 

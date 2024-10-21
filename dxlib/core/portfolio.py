@@ -99,3 +99,8 @@ class Portfolio(History):
         schema = HistorySchema.load(history_storage + "/schema", key)
         assert isinstance(data, pd.DataFrame)
         return cls(schema.index, schema.columns, data)
+
+    @classmethod
+    def cache_exists(cls, cache_path, key):
+        history_storage = cache_path + "/portfolio"
+        return os.path.exists(history_storage + f"/data.h5") and os.path.exists(history_storage + f"/schema")

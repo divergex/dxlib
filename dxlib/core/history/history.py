@@ -262,7 +262,12 @@ class History(Serializable, metaclass=RegistryBase):
             for idx, f in func.items():
                 data = data.groupby(idx, group_keys=False).apply(f, *args, **kwargs)
 
-            return History(self.schema, data)
+            schema = HistorySchema(
+                index={name: self.schema.index.get(name) for name in data.index.names},
+                columns={name: self.schema.columns.get(name) for name in data.columns}
+            )
+
+            return History(schema, data)
         else:
             return History(self.schema, self.data.apply(func, *args, **kwargs))
 
