@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from ..core import History, HistorySchema
+from dxlib.core import History, HistorySchema
 
 
 class MarketInterface:

@@ -3,12 +3,16 @@ import datetime
 from typing import Literal, Dict, Any, Union, List, AsyncGenerator
 from uuid import uuid4
 
-import pandas as pd
-import requests
-import cloudscraper
+try:
+    import pandas as pd
+    import requests
+    import cloudscraper
+except ImportError as e:
+    raise ImportError(
+        "Missing dependencies. Please install the required dependencies by running 'pip install dxlib[external.investing_com]'.")
 
-from .. import market_interface, interface
-from ...core import History, HistorySchema, Security
+from dxlib.interfaces import market_interface, interface
+from dxlib.core import History, HistorySchema, Security
 
 
 class InvestingComMarket(market_interface.MarketInterface):
@@ -18,7 +22,7 @@ class InvestingComMarket(market_interface.MarketInterface):
                 'browser': 'chrome',
                 'platform': 'android',
                 'desktop': False
-            }
+            },
         )
 
     @property
@@ -48,19 +52,20 @@ class InvestingComMarket(market_interface.MarketInterface):
         headers = self.headers
 
         request = self.get(url, params=params, headers=headers)
-        response = {}
 
-        try:
-            response = request.json()
-            assert request.status_code == 200 and (response["s"] == "ok" if endpoint in ["history", "quotes"] else True)
-        except (ValueError, AssertionError):
+        response = request.json()
+        if not (request.status_code == 200 and (response["s"] == "ok" if endpoint in ["history", "quotes"] else True)):
             raise ConnectionError(
                 f"Request to Investing.com API failed with error message: {response['s']}."
                 if "nextTime" not in response
-                else f"Unavailable time or quote for {params['symbol']} at {params['from']}."
+                else f"Rejected time or quote for {params['symbol']} "
+                     f"at {datetime.datetime.fromtimestamp(params['from'])}, "
+                     f"try at {datetime.datetime.fromtimestamp(response['nextTime'])} (Did you invert the start and end dates?)"
             )
+
         return response
 
+    @property
     def history_schema(self):
         return HistorySchema(
             index={'date': datetime.datetime, 'security': Security},
@@ -77,7 +82,7 @@ class InvestingComMarket(market_interface.MarketInterface):
                         params: Dict[str, Any],
                         response: Dict[str, Any]
                         ) -> History:
-        schema = self.history_schema()
+        schema = self.history_schema
 
         data = pd.DataFrame({
             'date': pd.to_datetime(response['t'], unit='s'),
@@ -101,27 +106,35 @@ class InvestingComMarket(market_interface.MarketInterface):
             params (Dict[str, Any]): Parameters for the request.
                 symbols (str | list): Symbol of the asset.
                 resolution (str): Resolution of the data.
-                from (int): Start timestamp.
-                to (int): End timestamp.
+                from (str): Start date.
+                to (str): End date.
         """
         if isinstance(params['symbols'], str):
             response = self._request("history", params)
             return self._format_history(params, response)
         else:
-            history = History(schema=self.history_schema())
+            history = History(schema=self.history_schema)
+
+            param = params.copy()
+            param = {k: v for k, v in param.items() if k != 'symbols'}
 
             for symbol in params.get('symbols', []):
-                params['symbol'] = symbol
-                response = self._request("history", params)
-                history.extend(self._format_history(params, response))
+                param['symbol'] = symbol
+                response = self._request("history", param)
+                history.extend(self._format_history(param, response))
             return history
 
-    def history(self, symbols, start, end, interval):
+    def history(self,
+                symbols: List[str] | str,
+                start: datetime.datetime,
+                end: datetime.datetime,
+                interval: Literal[1, 5, 15, 30, 60, 'D', 'W', 'M'] = 'D'
+                ):
         return self._history({
             'symbols': symbols,
             'resolution': interval,
-            'from': start.timestamp(),
-            'to': end.timestamp()
+            'from': int(start.timestamp()),
+            'to': int(end.timestamp())
         })
 
     def search(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:

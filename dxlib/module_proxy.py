@@ -1,3 +1,4 @@
+from logging import Logger
 from typing import TypeVar, Generic, Optional, Type, Any
 import importlib
 
@@ -9,7 +10,7 @@ class ModuleProxy(Generic[T]):
     A proxy class to lazy load a module and its objects.
     Useful when underlying module needs to be exposed but requires heavy or independent dependencies.
     """
-    def __init__(self, module_name: str, obj_name: Optional[str] = None):
+    def __init__(self, module_name: str, obj_name: Optional[str] = None, logger: Logger = None):
         """
         Args:
             module_name: The module name to load.
@@ -19,10 +20,11 @@ class ModuleProxy(Generic[T]):
         self._obj_name = obj_name
         self._module = None
         self._obj = None
+        self._logger = logger or Logger("ModuleProxy", level="DEBUG")
 
     def _load_module(self):
         if self._module is None:
-            print(f"Lazy loading module: {self._module_name}")
+            self._logger.info(f"Lazy loading module: {self._module_name}")
             self._module = importlib.import_module(self._module_name)
             if self._obj_name:
                 self._obj = getattr(self._module, self._obj_name)

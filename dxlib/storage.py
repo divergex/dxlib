@@ -1,8 +1,9 @@
+import contextlib
 import datetime
 import functools
 import json
 from abc import ABC, ABCMeta, abstractmethod
-from typing import TypeVar, Type
+from typing import TypeVar, Type, Generator
 
 import numpy as np
 import pandas as pd
@@ -27,29 +28,25 @@ class RegistryBase(ABCMeta):
         'int64': np.int64,
         'str': str,
         'bool': bool,
-        'datetime.datetime': datetime.datetime,
+        'datetime': datetime.datetime,
         'Timestamp': pd.Timestamp
     }
 
-    def __new__(cls, *args, **kwargs):
-        new_cls = super().__new__(cls, *args, **kwargs)
+    def __new__(cls, name, bases, attrs):
+        new_cls = super().__new__(cls, name, bases, attrs)
         cls.REGISTRY[new_cls.__name__] = new_cls
         return new_cls
 
     @classmethod
-    def get(cls, name: str):
-        return cls.REGISTRY[name]
-
-    @classmethod
-    def register(cls, obj, custom_name: str = None):
+    def reg(cls, obj, custom_name: str = None):
         cls.REGISTRY[obj.__name__ if custom_name is None else custom_name] = obj
 
+T = TypeVar('T')
 
 class Serializable(ABC):
     """
     Base class for all objects serializable. Useful for annotating network-related or disk-related objects.
     """
-    T = TypeVar('T')
 
     @abstractmethod
     def to_dict(self) -> dict:
@@ -75,13 +72,25 @@ class Serializable(ABC):
     def __json__(self):
         return json.dumps(self.to_dict())
 
+    def store(self, cache_path, key):
+        raise NotImplementedError
+
+    @classmethod
+    def load(cls, storage_path, key):
+        raise NotImplementedError
+
+    @classmethod
+    def cache_exists(cls, storage_path, key):
+        raise NotImplementedError
+
 
 class Cache:
     """
-    Cache class to manage HDF5 storage for History objects.
+    Cache class to manage HDF5 storage for objects.
     This class provides methods to store, extend, load, and verify existence of HDF5 caches.
     It does not depend on specific index names or columns, allowing flexibility for different history objects.
     """
+    T = TypeVar('T')
 
     def __init__(self, cache_dir: str = None):
         """
@@ -96,125 +105,51 @@ class Cache:
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
 
-    # region Manipulation
-
-    def _get_cache_path(self, history_name: str) -> str:
+    def _path(self, storage: str) -> str:
         """
         Generate the file path for the cache file of a given history object.
 
         Args:
-            history_name (str): The unique name of the history object (can be "symbol" or other identifier).
-
+            storage (str): The name/identifier for the storage unit.
         Returns:
             str: Full path to the cache file.
         """
-        return os.path.join(self.cache_dir, f"{history_name}.h5")
+        return os.path.join(self.cache_dir, f"{storage}")
 
-    def remove_cache(self):
-        """
-        Remove the cache directory and all its contents.
-        """
-        if os.path.exists(self.cache_dir):
-            # remove all files in the cache directory
-            for file in os.listdir(self.cache_dir):
-                os.remove(os.path.join(self.cache_dir, file))
-            # remove the cache directory
-            os.rmdir(self.cache_dir)
-
-    def store(self, history_name: str, data: pd.DataFrame):
-        """
-        Store a history object's data in an HDF5 cache file.
-
-        Args:
-            history_name (str): The name/identifier for the history object (e.g., symbol).
-            data (pd.DataFrame): The DataFrame containing the history data.
-        """
-        cache_path = self._get_cache_path(history_name)
-        data.to_hdf(cache_path, key='history', mode='w', format='table')
-        print(f"Stored cache for '{history_name}' at '{cache_path}'")
-
-    def extend(self, history_name: str, new_data: pd.DataFrame):
-        """
-        Extend an existing HDF5 cache with new data.
-
-        Args:
-            history_name (str): The name/identifier for the history object.
-            new_data (pd.DataFrame): The new data to append to the existing cache.
-        """
-        cache_path = self._get_cache_path(history_name)
-        if not os.path.exists(cache_path):
-            raise ValueError(f"No cache exists for '{history_name}'. Cannot extend a non-existing cache.")
-
-        # Load existing data
-        existing_data = self.load(history_name)
-
-        # Combine and remove duplicates
-        combined_data = pd.concat([existing_data, new_data]).drop_duplicates()
-
-        # Overwrite the cache with the combined data
-        combined_data.to_hdf(cache_path, key='history', mode='w', format='table')
-        print(f"Extended cache for '{history_name}' at '{cache_path}'")
-
-    def load(self, history_name: str) -> pd.DataFrame:
-        """
-        Load a history object's data from an HDF5 cache file.
-
-        Args:
-            history_name (str): The name/identifier for the history object.
-
-        Returns:
-            pd.DataFrame: The loaded history data.
-        """
-        cache_path = self._get_cache_path(history_name)
-        if not os.path.exists(cache_path):
-            raise FileNotFoundError(f"No cache found for '{history_name}'.")
-
-        # Load the data from the HDF5 cache
-        data = pd.read_hdf(cache_path, key='history')
-        print(f"Loaded cache for '{history_name}' from '{cache_path}'")
-
-        # pytables to pandas
-        return pd.DataFrame(data)
-
-    def exists(self, history_name: str) -> bool:
+    def exists(self, storage: str, key: str, object_type: Type[Serializable]) -> bool:
         """
         Check if a cache file exists for a given history object.
 
         Args:
-            history_name (str): The name/identifier for the history object.
-
+            storage (str): The name/identifier for the storage unit.
+            key (str): The key to check for in the storage unit.
+            object_type (Serializable): The type of object to check for.
         Returns:
             bool: True if the cache exists, False otherwise.
         """
-        cache_path = self._get_cache_path(history_name)
-        return os.path.exists(cache_path)
+        storage_path = self._path(storage)
+        assert os.path.exists(storage_path)
+        with contextlib.suppress(FileNotFoundError):
+            return object_type.cache_exists(storage_path, key)
+
+
+    # region Manipulation
+
+    def load(self, storage: str, key: str) -> (str, str):
+        """
+        Load a history object's data from an HDF5 cache file.
+
+        Args:
+            storage (str): The name/identifier for the storage unit.
+            key (str): The key to load the data under in the storage unit.
+        Returns:
+            pd.DataFrame: The loaded history data.
+        """
+        cache_path = self._path(storage)
+        if not os.path.exists(cache_path):
+            raise FileNotFoundError(f"No cache found for '{storage}'.")
+
+        return cache_path, key
 
     # endregion
 
-    # region Method decorators
-
-    def cache(self, key: str, extendable: bool = False):
-        """Cache decorator to cache function results."""
-        def decorator(func):
-            @functools.wraps(func)
-            def wrapper(*args, **kwargs):
-
-                exists = self.exists(key)
-
-                if exists:
-                    return self.load(key)
-
-                result = func(*args, **kwargs)
-
-                if exists and extendable:
-                    self.extend(key, result)
-                elif not exists:
-                    self.store(key, result)
-
-                return result
-
-            return wrapper
-
-        return decorator
-
-    # endregion

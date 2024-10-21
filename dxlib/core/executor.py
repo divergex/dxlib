@@ -1,7 +1,6 @@
-from abc import ABC, abstractmethod
 from typing import List
 
-from .history import HistorySchema, History
+from .history import History
 from .strategy import Strategy
 
 

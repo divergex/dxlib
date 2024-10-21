@@ -1,0 +1,1 @@
+ibapi~=9.81.1.post1  # IBKR API, see https://www.interactivebrokers.com/campus/ibkr-api-page/twsapi-doc/
