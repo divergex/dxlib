@@ -1,6 +1,6 @@
 import os
 from functools import reduce
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Tuple
 
 import numpy as np
 import pandas as pd
@@ -205,6 +205,27 @@ class History(Serializable, metaclass=RegistryBase):
             data = data.sort_index().loc[idx[tuple(index_slices), columns]]
 
         return data if raw else History(schema=self.schema.copy(), data=data[columns])
+
+    def set(self, values: Dict | pd.DataFrame):
+        """
+        Set values in the history data based on index filters and column selection. Doesn' work with slices yet.
+
+        Example:
+            >>> history = History()
+            >>> history.set({("2021-01-01", "AAPL"): {"close": 100}})
+            # Sets the close price of AAPL on 2021-01-01 to 100.
+
+        """
+        # don't use for, as too slow
+        if isinstance(values, dict):
+
+            values = pd.DataFrame.from_dict(values, orient="tight")
+        elif not isinstance(values, pd.DataFrame):
+            raise ValueError("Values must be a dictionary or a DataFrame.")
+
+        # update and then concat only new values, so as to not create repeated rows nor ignore existing column values
+        self.data.update(values)
+        self.data = pd.concat([self.data, values], sort=False).groupby(level=self.data.index.names).first()
 
     def op(self,
            other: "History",

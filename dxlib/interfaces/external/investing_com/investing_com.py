@@ -124,7 +124,7 @@ class InvestingComMarket(market_interface.MarketInterface):
                 history.extend(self._format_history(param, response))
             return history
 
-    def history(self,
+    def historical(self,
                 symbols: List[str] | str,
                 start: datetime.datetime,
                 end: datetime.datetime,

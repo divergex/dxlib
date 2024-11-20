@@ -41,21 +41,3 @@ class TradeApp(EWrapper, EClient):
 
     def accountDownloadEnd(self, accountName: str):
         print("AccountDownloadEnd. Account:", accountName)
-
-
-app = TradeApp()
-app.connect("127.0.0.1", 4002, clientId=1)
-time.sleep(1)
-app.reqAccountUpdates(True, 'DU8605718')
-
-api_thread = threading.Thread(target=app.run)
-
-api_thread.start()
-
-try:
-    while True:
-        time.sleep(1)
-except KeyboardInterrupt:
-    app.disconnect()
-    api_thread.join()
-    print("Finished")

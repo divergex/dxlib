@@ -1,6 +1,12 @@
 import time
 import threading
-import numpy as np
+from datetime import datetime
+from enum import Enum
+
+import pandas as pd
+
+from dxlib.core.history import History, HistorySchema
+from dxlib.interfaces import MarketInterface
 
 from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
@@ -8,121 +14,59 @@ from ibapi.contract import Contract
 from ibapi.order import Order
 
 
-class TradeApp(EWrapper, EClient):
+class OrderType(Enum):
+    MARKET = "MKT"
+    LIMIT = "LMT"
+    STOP = "STP"
+    STOP_LIMIT = "STP LMT"
+
+
+class IbkrWrapper(EClient, EWrapper):
     def __init__(self):
+        EWrapper.__init__(self)
         EClient.__init__(self, self)
-        self.prices = []
         self.next_order_id = None
-        self.current_price_req_id = 1001
-        self.open_orders = {}
+        self.sent_orders = {}
+        self.data = []
         self.position = 0
-
-    def start(self):
-        self.connect("127.0.0.1", 4002, clientId=1)
-        api_thread = threading.Thread(target=self.run)
-        api_thread.start()
-        time.sleep(1)
-        self.reqIds(1)
-        self.reqAccountUpdates(True, "DU8605718")
-        self.reqPositions()
-
-    def stop(self):
-        self.disconnect()
+        self.orders = []
+        self.done = False
+        self.current_price_req_id = 1001
 
     def nextValidId(self, orderId: int):
         self.next_order_id = orderId
         print(f"Next valid order ID: {self.next_order_id}")
 
-    def request_current_price(self, symbol: str):
-        contract = Contract()
-        contract.symbol = symbol
-        contract.secType = "STK"
-        contract.exchange = "SMART"
-        contract.currency = "USD"
-        self.reqMarketDataType(3)
-        self.reqMktData(self.current_price_req_id, contract, "", False, False, [])
-        self.current_price_req_id += 1
-
-    def tickPrice(self, reqId: int, tickType: int, price: float, attrib):
-        if tickType == 4:
-            print(f"Tick Price. ReqId: {reqId}, Last Price: {price}")
-            self.prices.append(price)
-            if len(self.prices) >= 14:
-                self.calculate_rsi()
-
-    def calculate_rsi(self):
-        prices = np.array(self.prices[-14:])
-        deltas = np.diff(prices)
-        gains = np.where(deltas > 0, deltas, 0)
-        losses = np.where(deltas < 0, -deltas, 0)
-
-        avg_gain = np.mean(gains)
-        avg_loss = np.mean(losses)
-
-        if avg_loss == 0:
-            rsi = 100
-        else:
-            rs = avg_gain / avg_loss
-            rsi = 100 - (100 / (1 + rs))
-
-        print(f"RSI: {rsi}")
-
-
-        if rsi < 30:
-            self.place_order("BUY")
-        elif rsi > 70:
-            self.place_order("SELL")
-
-    def place_order(self, action: str):
+    def place_order(self, symbol: str, action: str, quantity: int, order_type: OrderType, price: float = 0):
         if self.next_order_id is None:
             print("Order ID is not available. Cannot place order.")
             return
 
         contract = Contract()
-        contract.symbol = "AAPL"
+        contract.symbol = symbol
         contract.secType = "STK"
         contract.exchange = "SMART"
         contract.currency = "USD"
 
-        order = self.create_order(action, 10)
+        order = Order()
+        order.action = action
+        order.orderType = order_type.value
+        order.totalQuantity = quantity
+        order.lmtPrice = price
 
         self.placeOrder(self.next_order_id, contract, order)
-        print(f"Placed {action} order for 10 shares of AAPL with order ID: {self.next_order_id}.")
+        print(f"Placed {action} order for {quantity} shares of {symbol} with order ID: {self.next_order_id}.")
 
         self.next_order_id += 1
 
-    def get_book(self, symbol: str):
-        contract = Contract()
-        contract.symbol = symbol
-        contract.secType = "STK"
-        # cant use smart
-        contract.exchange = "ISLAND"
-        contract.currency = "USD"
-        self.reqMktDepth(self.current_price_req_id, contract, 5, False, [])
-        self.current_price_req_id += 1
-
-    def updateMktDepth(self, reqId: int, position: int, operation: int, side: int, price: float, size: int):
-        print(f"Market Depth. ReqId: {reqId}, Position: {position}, Operation: {operation}, Side: {side}, "
-              f"Price: {price}, Size: {size}")
-
-    def tickByTickBidAsk(self, reqId: int, time: int, bidPrice: float, askPrice: float, bidSize: int, askSize: int, tickAttribBidAsk):
-        print(f"Bid Price: {bidPrice}, Ask Price: {askPrice}")
-
-    def create_order(self, action: str, quantity: int):
-        order = Order()
-        order.action = action
-        order.orderType = "MKT"
-        order.totalQuantity = quantity
-        return order
-
     def cancel_all_orders(self):
-        for order_id in list(self.open_orders.keys()):
+        for order_id in list(self.sent_orders.keys()):
             self.cancelOrder(order_id)
             print(f"Canceled order ID: {order_id}")
-        self.open_orders.clear()
+        self.sent_orders.clear()
 
     def openOrder(self, orderId: int, contract: Contract, order: Order, orderState: str):
-        self.open_orders[orderId] = order
+        self.sent_orders[orderId] = order
         print(f"Open Order. ID: {orderId}, Symbol: {contract.symbol}, Action: {order.action}, "
               f"Status: {orderState}")
 
@@ -135,33 +79,128 @@ class TradeApp(EWrapper, EClient):
         except ValueError:
             pass
 
-def format_currency(value):
-    if value >= 1_000_000_000:  # 1 billion
-        return f"${value / 1_000_000_000:.2f}B"
-    elif value >= 1_000_000:  # 1 million
-        return f"${value / 1_000_000:.2f}M"
-    else:
-        return f"${value:.2f}"
+    def request_current_price(self, symbol: str):
+        contract = Contract()
+        contract.symbol = symbol
+        contract.secType = "STK"
+        contract.exchange = "SMART"
+        contract.currency = "USD"
+        self.reqMarketDataType(3)
+        self.reqMktData(self.current_price_req_id, contract, "", False, False, [])
+        self.current_price_req_id += 1
+
+    def historicalDataEnd(self, reqId: int, start: str, end: str):
+        print("Historical Data End")
+        self.done = True
+
+    def get_historical_data(self, symbol: str):
+        contract = Contract()
+        contract.symbol = symbol
+        contract.secType = "STK"
+        contract.exchange = "SMART"
+        contract.currency = "USD"
+        self.reqHistoricalData(1, contract, "", "1 Y", "1 day", "TRADES", 0, 1, False, [])
+
+    # process reqHistoricalData
+    def historicalData(self, reqId, bar):
+        self.data.append([bar.date, bar.open, bar.high, bar.low, bar.close, bar.volume, bar.barCount])
+
+    def get_book(self, symbol: str):
+        contract = Contract()
+        contract.symbol = symbol
+        contract.secType = "STK"
+        # cant use smart
+        contract.exchange = "ISLAND"
+        contract.currency = "USD"
+        self.reqMktDepth(self.current_price_req_id, contract, 5, False, [])
+        self.current_price_req_id += 1
+
+    # order statuses
+    def orderStatus(self, orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice,
+                    clientId, whyHeld, mktCapPrice):
+        self.orders.append({
+            "orderId": orderId,
+            "status": status,
+            "filled": filled,
+            "remaining": remaining,
+            "avgFillPrice": avgFillPrice,
+            "permId": permId,
+            "parentId": parentId,
+            "lastFillPrice": lastFillPrice
+        })
+        print(f"Order ID: {orderId}, Status: {status}, Filled: {filled}, Remaining: {remaining}")
+
+class IbkrMarket(IbkrWrapper, MarketInterface):
+    def start(self):
+        self.connect("127.0.0.1", 4002, clientId=1)
+        api_thread = threading.Thread(target=self.run)
+        api_thread.start()
+        time.sleep(1)
+        self.reqIds(1)
+        self.reqPositions()
+
+    def stop(self):
+        self.disconnect()
+
+    def historical(self, symbols: list[str], start: datetime, end: datetime, interval: str) -> History:
+        # Test if connection is established
+        if not self.isConnected():
+            self.start()
+
+        self.get_historical_data(symbols[0])
+        while not self.data:
+            pass
+        schema = HistorySchema(
+            index={"date": datetime},
+            columns={
+                "open": float,
+                "high": float,
+                "low": float,
+                "close": float,
+                "volume": int,
+                "bar_count": int
+            }
+        )
+        df = pd.DataFrame(self.data, columns=["date", "open", "high", "low", "close", "volume", "bar_count"])
+        # convert date index to correct format
+        # 20241029 19:27:00 US/Eastern -> 2024-10-29 19:27:00
+        try:
+            df["date"] = pd.to_datetime(df["date"], format="%Y%m%d %H:%M:%S %Z")
+        except ValueError:
+            df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
+        df = df.set_index("date")
+        history = History(schema, df)
+        self.data.clear()
+        self.done = False
+        self.stop()
+        return history
+
+    def portfolio(self, account:str, subscribe: bool = True):
+        if not self.isConnected():
+            self.start()
+
+        self.reqAccountUpdates(subscribe, account)
+
+        while not self.position:
+            pass
+
+        self.stop()
+        return self.position
 
 
-def main():
-    app = TradeApp()
+    def get_orders(self):
+        # show currently open orders
+        if not self.isConnected():
+            self.start()
 
-    app.start()
+        self.reqOpenOrders()
 
-    app.request_current_price("AAPL")
-    app.get_book("AAPL")
+        while not (self.orders or self.sent_orders):
+            pass
 
-    try:
+        self.stop()
+        return self.orders + list(self.sent_orders.values())
 
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        app.cancel_all_orders()
-        print(f"Position: {format_currency(app.position)}")
-        print("Exiting...")
-        app.stop()
-
-
-if __name__ == "__main__":
-    main()
+class Ibkr:
+    def __init__(self):
+        self.market_interface = IbkrMarket()
