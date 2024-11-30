@@ -69,7 +69,7 @@ class HistorySchema(Serializable, metaclass=RegistryBase):
 
     def store(self, storage_path, key):
         try:
-            os.makedirs(storage_path + "/history")
+            os.makedirs(storage_path)
         except FileExistsError:
             pass
 

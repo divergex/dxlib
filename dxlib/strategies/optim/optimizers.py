@@ -1,11 +1,13 @@
 import numpy as np
 import pandas as pd
-import cvxpy as cp
+
+from scipy.optimize import minimize
+from scipy import stats
 
 
-def mean_variance_optim(mu, sigma, gamma=1, max_stocks=None, var_bound=None, conf=0.95, extra_constraints=None):
+def mean_variance_optim(mu, sigma, gamma=1, max_stocks=None, var_bound=None, conf=0.95):
     """
-    Perform mean-variance optimization with a cardinality constraint.
+    Perform mean-variance optimization without cvxpy.
 
     Args:
         mu (Series): Expected returns
@@ -14,45 +16,49 @@ def mean_variance_optim(mu, sigma, gamma=1, max_stocks=None, var_bound=None, con
         max_stocks (int): Maximum number of stocks in the portfolio
         var_bound (float): Variance bound
         conf (float): Confidence level for the variance bound
-        extra_constraints (list): List of additional constraints
+
     Returns:
         Series: Optimal weights
     """
     n = len(mu)
-    mu = mu.values.reshape(-1)
 
-    w = cp.Variable(n)  # These are the weights of the portfolio
-    y = cp.Variable(n, boolean=True)  # These are the binary variables for the stocks (1 if selected, 0 otherwise)
+    # Function to minimize (negative Sharpe ratio)
+    def objective(weights):
+        return -((weights @ mu) - (gamma / 2) * (weights @ sigma @ weights))
 
-    # Objective function: Mean-variance optimization
-    objective = cp.Minimize(
-        0.5 * cp.quad_form(w, sigma) - gamma * mu @ w)  # Minimize the negative of the utility function -> Maximize
+    # Constraints: weights sum to 1
+    constraints = [{'type': 'eq', 'fun': lambda x: np.sum(x) - 1}]  # Sum of weights = 1
 
-    constraints = [
-        cp.sum(w) == 1,
-        w >= 0,
-        w <= y, 2
-    ]
-
-    if isinstance(max_stocks, (int, float)):
-        constraints.append(cp.sum(y) <= max_stocks)  # Limit the number of selected stocks
-    elif isinstance(max_stocks, dict):
-        for key, value in max_stocks.items():
-            constraints.append(cp.sum(y[key]) <= value)
-
+    # Variance constraint if provided
     if var_bound is not None:
-        z_score = cp.norm.ppf(1 - (1 - conf) / 2)
-        std = cp.sqrt(cp.quad_form(w, sigma))
-        var = mu @ w - z_score * std
-        constraints.append(var >= var_bound)  # Limit the Value-at-Risk of current portfolio
+        constraints.append({
+            'type': 'ineq',
+            'fun': lambda x: var_bound - (x @ sigma @ x)  # Variance must be less than or equal to var_bound
+        })
 
-    if extra_constraints is not None:
-        constraints += extra_constraints
+    # Boundaries for weights (between 0 and 1)
+    bounds = [(0, 1) for _ in range(n)]
 
-    problem = cp.Problem(objective, constraints)
-    problem.solve(solver=cp.ECOS_BB)
+    # Initial guess
+    initial_weights = np.ones(n) / n
 
-    return w.value
+    # Adding a constraint for maximum number of stocks
+    if max_stocks is not None:
+        def max_stocks_constraint(weights):
+            return max_stocks - np.count_nonzero(weights)  # Count of non-zero weights must be less than or equal to max_stocks
+        constraints.append({
+            'type': 'ineq',
+            'fun': max_stocks_constraint
+        })
+
+    # Perform optimization
+    result = minimize(objective, initial_weights, method='SLSQP', bounds=bounds, constraints=constraints)
+
+    # Check if optimization was successful
+    if not result.success:
+        raise ValueError("Optimization failed: " + result.message)
+
+    return pd.Series(result.x, index=mu.index)
 
 
 def dirichlet_sampling(alpha, columns, num_samples=20000):
@@ -80,7 +86,7 @@ def dirichlet_weights(mu, sigma, alpha,
                       ) -> pd.Series:
     """
     Estimate the mean and covariance of portfolios sampled from a Dirichlet distribution.
-    Find the portfolio closest to the optimal (as given by mean-variance optimization).
+    Find the portfolio closest to the optimal (as given by mean-variance optim).
 
     Args:
         mu (Series): Expected returns of assets.

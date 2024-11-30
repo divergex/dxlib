@@ -1,6 +1,8 @@
+import contextlib
 import os
+from enum import Enum
 from functools import reduce
-from typing import Dict, List, Union
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
@@ -19,6 +21,7 @@ class History(Serializable, metaclass=RegistryBase):
     The main purpose of a history is to provide common methods to manipulate and analyze the data, as well as context.
     This is useful for easily storing, retrieving, backtesting and networking data.
     """
+
     def __init__(self,
                  schema: HistorySchema = None,
                  data: pd.DataFrame | dict | list = None):
@@ -191,7 +194,8 @@ class History(Serializable, metaclass=RegistryBase):
         index = index or {}
         columns = columns or self.columns
 
-        index_filters = [self.data.index.get_level_values(idx).isin(values) for idx, values in index.items() if isinstance(values, list)]
+        index_filters = [self.data.index.get_level_values(idx).isin(values) for idx, values in index.items() if
+                         isinstance(values, list)]
         index_slices = [index.get(level, slice(None)) for level in index.keys() if isinstance(index[level], slice)]
 
         data = self.data
@@ -205,6 +209,27 @@ class History(Serializable, metaclass=RegistryBase):
             data = data.sort_index().loc[idx[tuple(index_slices), columns]]
 
         return data if raw else History(schema=self.schema.copy(), data=data[columns])
+
+    def set(self, values: Dict | pd.DataFrame):
+        """
+        Set values in the history data based on index filters and column selection. Doesn' work with slices yet.
+
+        Example:
+            >>> history = History()
+            >>> history.set({("2021-01-01", "AAPL"): {"close": 100}})
+            # Sets the close price of AAPL on 2021-01-01 to 100.
+
+        """
+        # don't use for, as too slow
+        if isinstance(values, dict):
+
+            values = pd.DataFrame.from_dict(values, orient="tight")
+        elif not isinstance(values, pd.DataFrame):
+            raise ValueError("Values must be a dictionary or a DataFrame.")
+
+        # update and then concat only new values, so as to not create repeated rows nor ignore existing column values
+        self.data.update(values)
+        self.data = pd.concat([self.data, values], sort=False).groupby(level=self.data.index.names).first()
 
     def op(self,
            other: "History",
@@ -253,7 +278,8 @@ class History(Serializable, metaclass=RegistryBase):
         return History(self.schema, result)
 
     def apply_on(self, other, func, *args, **kwargs):
-        return History(self.schema, func(self.data, other.data if isinstance(other, History) else other, *args, **kwargs))
+        return History(self.schema,
+                       func(self.data, other.data if isinstance(other, History) else other, *args, **kwargs))
 
     def apply(self, func: Dict[str, callable] | callable, *args, **kwargs) -> "History":
         if isinstance(func, dict):
@@ -262,7 +288,12 @@ class History(Serializable, metaclass=RegistryBase):
             for idx, f in func.items():
                 data = data.groupby(idx, group_keys=False).apply(f, *args, **kwargs)
 
-            return History(self.schema, data)
+            schema = HistorySchema(
+                index={name: self.schema.index.get(name) for name in data.index.names},
+                columns={name: self.schema.columns.get(name) for name in data.columns}
+            )
+
+            return History(schema, data)
         else:
             return History(self.schema, self.data.apply(func, *args, **kwargs))
 
@@ -312,9 +343,13 @@ class History(Serializable, metaclass=RegistryBase):
 
     @classmethod
     def cache_exists(cls, cache_path, key):
-        file_exists = os.path.exists(cache_path + f"/history/data.h5") and os.path.exists(cache_path + f"/history/schema/")
+        file_exists = os.path.exists(cache_path + f"/history/data.h5") and os.path.exists(
+            cache_path + f"/history/schema/")
         schema_exists = os.path.exists(cache_path + f"/history/schema/{key}.json")
-        store = pd.HDFStore(cache_path + f"/history/data.h5")
+        try:
+            store = pd.HDFStore(cache_path + f"/history/data.h5")
+        except FileNotFoundError:
+            return False
         try:
             data_exists = f"/{key}" in store.keys()
         finally:
