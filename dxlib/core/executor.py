@@ -6,7 +6,7 @@ from .strategy import Strategy
 
 class Executor:
     """
-    An executor is a history factory that creates histories from a schema.
+    An executor is a history.py factory that creates histories from a schema.
     It receives an output schema and a data source, either a:
 
     - Generator + input schema;
@@ -28,7 +28,7 @@ class Executor:
         Args:
 
         Returns:
-            History: The output history.
+            History: The output history.py.
         """
         if isinstance(obj, History):
             return self._run_history(obj, groupby)
@@ -44,7 +44,7 @@ class Executor:
         Args:
 
         Returns:
-            History: The output history.
+            History: The output history.py.
         """
         # First, group by first element of groupby in the index
         # example: Multiindex with 5 levels, groupby=["level4", "level2"] will group by level 4,

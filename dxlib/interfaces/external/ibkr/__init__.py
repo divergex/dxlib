@@ -1,5 +1,17 @@
+from asyncio import Protocol
+
 from dxlib.module_proxy import ModuleProxy
-from dxlib.interfaces.interface import Interface
+from dxlib.interfaces.interface import Interface, TradingInterface
 
 ibkr = ModuleProxy("dxlib.interfaces.external.ibkr.ibkr")
-Ibkr = ibkr[Interface]("Ibkr")
+
+class IbkrProtocol(TradingInterface, Protocol):
+    def __init__(self, host: str, port: int, client_id: int, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    @property
+    def connection(self):
+        return
+
+
+Ibkr = ibkr[IbkrProtocol]("Ibkr")

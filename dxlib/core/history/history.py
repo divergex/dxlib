@@ -1,6 +1,8 @@
+import contextlib
 import os
+from enum import Enum
 from functools import reduce
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
@@ -19,6 +21,7 @@ class History(Serializable, metaclass=RegistryBase):
     The main purpose of a history is to provide common methods to manipulate and analyze the data, as well as context.
     This is useful for easily storing, retrieving, backtesting and networking data.
     """
+
     def __init__(self,
                  schema: HistorySchema = None,
                  data: pd.DataFrame | dict | list = None):
@@ -191,7 +194,8 @@ class History(Serializable, metaclass=RegistryBase):
         index = index or {}
         columns = columns or self.columns
 
-        index_filters = [self.data.index.get_level_values(idx).isin(values) for idx, values in index.items() if isinstance(values, list)]
+        index_filters = [self.data.index.get_level_values(idx).isin(values) for idx, values in index.items() if
+                         isinstance(values, list)]
         index_slices = [index.get(level, slice(None)) for level in index.keys() if isinstance(index[level], slice)]
 
         data = self.data
@@ -274,7 +278,8 @@ class History(Serializable, metaclass=RegistryBase):
         return History(self.schema, result)
 
     def apply_on(self, other, func, *args, **kwargs):
-        return History(self.schema, func(self.data, other.data if isinstance(other, History) else other, *args, **kwargs))
+        return History(self.schema,
+                       func(self.data, other.data if isinstance(other, History) else other, *args, **kwargs))
 
     def apply(self, func: Dict[str, callable] | callable, *args, **kwargs) -> "History":
         if isinstance(func, dict):
@@ -338,9 +343,13 @@ class History(Serializable, metaclass=RegistryBase):
 
     @classmethod
     def cache_exists(cls, cache_path, key):
-        file_exists = os.path.exists(cache_path + f"/history/data.h5") and os.path.exists(cache_path + f"/history/schema/")
+        file_exists = os.path.exists(cache_path + f"/history/data.h5") and os.path.exists(
+            cache_path + f"/history/schema/")
         schema_exists = os.path.exists(cache_path + f"/history/schema/{key}.json")
-        store = pd.HDFStore(cache_path + f"/history/data.h5")
+        try:
+            store = pd.HDFStore(cache_path + f"/history/data.h5")
+        except FileNotFoundError:
+            return False
         try:
             data_exists = f"/{key}" in store.keys()
         finally:

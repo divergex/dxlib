@@ -1,9 +1,10 @@
 from datetime import datetime
 
 from dxlib.core import History, HistorySchema
+from .interface import Interface
 
 
-class MarketInterface:
+class MarketInterface(Interface):
     def quote(self) -> float:
         """
         Get the current price of the security.

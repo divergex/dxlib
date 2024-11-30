@@ -11,11 +11,11 @@ except ImportError as e:
     raise ImportError(
         "Missing dependencies. Please install the required dependencies by running 'pip install dxlib[external.investing_com]'.")
 
-from dxlib.interfaces import market_interface, interface
+from dxlib.interfaces import market_interface
 from dxlib.core import History, HistorySchema, Security
 
 
-class InvestingComMarket(market_interface.MarketInterface):
+class InvestingCom(market_interface.MarketInterface):
     def __init__(self):
         self.scrapper = cloudscraper.create_scraper(
             browser={
@@ -45,7 +45,7 @@ class InvestingComMarket(market_interface.MarketInterface):
 
     def _request(
             self,
-            endpoint: Literal["history", "search", "quotes", "symbols"],
+            endpoint: Literal["history.py", "search", "quotes", "symbols"],
             params: Dict[str, Any]
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         url = self.url + endpoint
@@ -54,7 +54,7 @@ class InvestingComMarket(market_interface.MarketInterface):
         request = self.get(url, params=params, headers=headers)
 
         response = request.json()
-        if not (request.status_code == 200 and (response["s"] == "ok" if endpoint in ["history", "quotes"] else True)):
+        if not (request.status_code == 200 and (response["s"] == "ok" if endpoint in ["history.py", "quotes"] else True)):
             raise ConnectionError(
                 f"Request to Investing.com API failed with error message: {response['s']}."
                 if "nextTime" not in response
@@ -86,7 +86,7 @@ class InvestingComMarket(market_interface.MarketInterface):
 
         data = pd.DataFrame({
             'date': pd.to_datetime(response['t'], unit='s'),
-            'security': params['symbol'],
+            'security': params['symbols'],
             'close': response['c'],
             'open': response['o'],
             'high': response['h'],
@@ -110,7 +110,7 @@ class InvestingComMarket(market_interface.MarketInterface):
                 to (str): End date.
         """
         if isinstance(params['symbols'], str):
-            response = self._request("history", params)
+            response = self._request("history.py", params)
             return self._format_history(params, response)
         else:
             history = History(schema=self.history_schema)
@@ -120,7 +120,7 @@ class InvestingComMarket(market_interface.MarketInterface):
 
             for symbol in params.get('symbols', []):
                 param['symbol'] = symbol
-                response = self._request("history", param)
+                response = self._request("history.py", param)
                 history.extend(self._format_history(param, response))
             return history
 
@@ -180,8 +180,3 @@ class InvestingComMarket(market_interface.MarketInterface):
             for symbol in symbols:
                 yield self.quotes({"symbol": symbol})
             await asyncio.sleep(interval)
-
-
-class InvestingCom(interface.Interface):
-    def __init__(self):
-        self.market_interface = InvestingComMarket()

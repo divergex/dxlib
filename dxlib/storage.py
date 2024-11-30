@@ -100,7 +100,7 @@ class Cache:
             cache_dir (str): Directory where HDF5 files will be stored. Defaults to './cache'.
         """
         if cache_dir is None:
-            cache_dir = os.path.join(os.getcwd(), '.cache/')
+            cache_dir = os.path.join(os.getcwd(), '.cache')
         self.cache_dir = cache_dir
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
@@ -140,13 +140,13 @@ class Cache:
 
     def load(self, storage: str, key: str) -> (str, str):
         """
-        Load a history object's data from an HDF5 cache file.
+        Load an object's data from an HDF5 cache file.
 
         Args:
             storage (str): The name/identifier for the storage unit.
             key (str): The key to load the data under in the storage unit.
         Returns:
-            pd.DataFrame: The loaded history data.
+            pd.DataFrame: The loaded data.
         """
         cache_path = self._path(storage)
         if not os.path.exists(cache_path):
