@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from dxlib.core import History
-from dxlib.interfaces import Handler
+from dxlib.interfaces import Service
 
 
 def slice_to_dict(slice_obj: Optional[slice]) -> Optional[dict]:
@@ -29,7 +29,7 @@ class HistoryResponse(BaseModel):
     schema: dict
 
 
-class HistoryHttpHandler(Handler):
+class HistoryHttpHandler(Service):
     def __init__(self):
         self.store: Optional[History] = None
 
