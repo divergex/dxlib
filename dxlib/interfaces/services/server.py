@@ -1,15 +1,5 @@
-from abc import ABC
-
-from dxlib.interfaces.servers.protocols import Protocols
-
-
-class Service(ABC):
-    """Base class for services, providing automatic registration and endpoint handling."""
-
-    def __init__(self, name, service_id, tags=None):
-        self.name = name
-        self.service_id = service_id
-        self.tags = tags or []
+from .service import Service
+from .protocols import Protocols
 
 
 class Server:
@@ -26,11 +16,15 @@ class Server:
 
     def register_endpoint(self, service, path, func):
         self.endpoints[path] = func
+        return func.__get__(service).endpoint
 
-    def register(self, service: Service, root_path="/"):
+    def register(self, service: Service, root_path=""):
         for key, func in service.__class__.__dict__.items():
             if hasattr(func, "endpoint"):
                 endpoint = func.__get__(self).endpoint
-                path = f"{root_path}/{endpoint.route}"
+                path = f"{root_path}/{endpoint.route}" if root_path else endpoint.route
                 path = "/".join(path.split("/")).replace("//", "/")
+                # add starting / if user has not added it
+                if not path.startswith("/"):
+                    path = f"/{path}"
                 self.register_endpoint(service, path, func.__get__(service))

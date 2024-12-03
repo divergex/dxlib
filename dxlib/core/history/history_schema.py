@@ -3,6 +3,7 @@ import os
 from typing import Dict, Type, List
 
 import pandas as pd
+from attr import dataclass
 
 from dxlib.storage import Serializable, RegistryBase
 
@@ -13,6 +14,7 @@ class HistorySchema(Serializable, metaclass=RegistryBase):
     It contains the index names mapped to their respective types and levels,
     as well as the column names mapped to their types.
     """
+
     def __init__(self, index: Dict[str, Type] = None, columns: Dict[str, Type] = None):
         self.index: Dict[str, Type] = index  # name = [level1, level2, ...], type = ['str', 'int', ...]
         self.columns: Dict[str, Type] = columns
@@ -63,7 +65,8 @@ class HistorySchema(Serializable, metaclass=RegistryBase):
     @classmethod
     def from_df(cls, df: pd.DataFrame) -> "HistorySchema":
         return cls(
-            index={name: type_ for name, type_ in zip(df.index.names, df.index.dtypes if isinstance(df.index, pd.MultiIndex) else [df.index.dtype])},
+            index={name: type_ for name, type_ in
+                   zip(df.index.names, df.index.dtypes if isinstance(df.index, pd.MultiIndex) else [df.index.dtype])},
             columns={name: type_ for name, type_ in zip(df.columns, df.dtypes)}
         )
 

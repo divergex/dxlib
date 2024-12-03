@@ -1,9 +1,9 @@
 import contextlib
 import datetime
-import functools
 import json
 from abc import ABC, ABCMeta, abstractmethod
-from typing import TypeVar, Type, Generator
+from decimal import Decimal
+from typing import TypeVar, Type
 
 import numpy as np
 import pandas as pd
@@ -29,7 +29,14 @@ class RegistryBase(ABCMeta):
         'str': str,
         'bool': bool,
         'datetime': datetime.datetime,
-        'Timestamp': pd.Timestamp
+        'Timestamp': pd.Timestamp,
+        'Decimal': Decimal
+    }
+
+    SERIALIZE = {
+        datetime.datetime: lambda x: x.isoformat(),
+        pd.Timestamp: lambda x: x.isoformat(),
+        Decimal: lambda x: float(x)
     }
 
     def __new__(cls, name, bases, attrs):
@@ -41,7 +48,15 @@ class RegistryBase(ABCMeta):
     def reg(cls, obj, custom_name: str = None):
         cls.REGISTRY[obj.__name__ if custom_name is None else custom_name] = obj
 
+    @classmethod
+    def json_serializer(cls, obj):
+        if type(obj) in cls.REGISTRY.values():
+            return cls.SERIALIZE[type(obj)](obj)
+        raise TypeError(f"Registry object has unregistered deserializer for dependant type {type(obj)}")
+
+
 T = TypeVar('T')
+
 
 class Serializable(ABC):
     """
@@ -70,7 +85,7 @@ class Serializable(ABC):
         pass
 
     def __json__(self):
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict(), default=RegistryBase.json_serializer)
 
     def store(self, cache_path, key):
         raise NotImplementedError
@@ -135,7 +150,6 @@ class Cache:
         with contextlib.suppress(FileNotFoundError):
             return object_type.cache_exists(storage_path, key)
 
-
     # region Manipulation
 
     def load(self, storage: str, key: str) -> (str, str):
@@ -155,4 +169,3 @@ class Cache:
         return cache_path, key
 
     # endregion
-

@@ -1,11 +1,10 @@
-import contextlib
 import os
-from enum import Enum
 from functools import reduce
 from typing import Dict, List
 
 import numpy as np
 import pandas as pd
+from attr import dataclass
 
 from dxlib.storage import Serializable, RegistryBase
 from .history_schema import HistorySchema
@@ -23,7 +22,7 @@ class History(Serializable, metaclass=RegistryBase):
     """
 
     def __init__(self,
-                 schema: HistorySchema = None,
+                 history_schema: HistorySchema | dict = None,
                  data: pd.DataFrame | dict | list = None):
         """
         A history is a collection of dense mutable data points.
@@ -35,14 +34,17 @@ class History(Serializable, metaclass=RegistryBase):
         as a history instance can be used as a placeholder for data.
 
         Args:
-            schema (HistorySchema): The schema that describes the data.
+            history_schema (HistorySchema): The schema that describes the data.
             data (pd.DataFrame | dict | list): The data for which this history is a container. Can be used elsewhere.
 
         Returns:
             History: A history instance.
         """
-        self.schema: HistorySchema = schema
+        self.history_schema: HistorySchema = history_schema
         self.data: pd.DataFrame | None = None
+
+        if isinstance(history_schema, dict):
+            self.history_schema = HistorySchema.from_dict(history_schema)
 
         if isinstance(data, pd.DataFrame):
             self.data: pd.DataFrame = data
@@ -52,8 +54,8 @@ class History(Serializable, metaclass=RegistryBase):
             self.data: pd.DataFrame = pd.DataFrame(data)
 
         # test if self.data index have correct names
-        if self.schema is not None and self.data is not None:
-            if self.schema.index and self.schema.index.keys() != set(self.data.index.names):
+        if self.history_schema is not None and self.data is not None:
+            if self.history_schema.index and self.history_schema.index.keys() != set(self.data.index.names):
                 raise ValueError("The index names do not match the schema.")
 
     # region Abstract Properties
@@ -146,7 +148,7 @@ class History(Serializable, metaclass=RegistryBase):
         Returns:
             History: This history, now with the data of the other history.
         """
-        if self.schema != other.schema:
+        if self.history_schema != other.history_schema:
             raise ValueError("The schemas of the histories do not match.")
 
         self.data = pd.concat([self.data, other.data])
@@ -167,10 +169,10 @@ class History(Serializable, metaclass=RegistryBase):
         Returns:
             History: This history, now the extended column set of the other history.
         """
-        if self.schema.index != other.schema.index:
+        if self.history_schema.index != other.history_schema.index:
             raise ValueError("The indexes of the histories do not match.")
 
-        self.schema.columns.update(other.schema.columns)
+        self.history_schema.columns.update(other.history_schema.columns)
 
         self.data = pd.concat([self.data, other.data], axis=1)
         self.data = self.data.groupby(level=self.data.index.names).first()
@@ -208,7 +210,7 @@ class History(Serializable, metaclass=RegistryBase):
             idx = pd.IndexSlice
             data = data.sort_index().loc[idx[tuple(index_slices), columns]]
 
-        return data if raw else History(schema=self.schema.copy(), data=data[columns])
+        return data if raw else History(history_schema=self.history_schema.copy(), data=data[columns])
 
     def set(self, values: Dict | pd.DataFrame):
         """
@@ -275,10 +277,10 @@ class History(Serializable, metaclass=RegistryBase):
 
         result = pd.DataFrame(combined, index=a.index, columns=result_columns)
 
-        return History(self.schema, result)
+        return History(self.history_schema, result)
 
     def apply_on(self, other, func, *args, **kwargs):
-        return History(self.schema,
+        return History(self.history_schema,
                        func(self.data, other.data if isinstance(other, History) else other, *args, **kwargs))
 
     def apply(self, func: Dict[str, callable] | callable, *args, **kwargs) -> "History":
@@ -289,16 +291,16 @@ class History(Serializable, metaclass=RegistryBase):
                 data = data.groupby(idx, group_keys=False).apply(f, *args, **kwargs)
 
             schema = HistorySchema(
-                index={name: self.schema.index.get(name) for name in data.index.names},
-                columns={name: self.schema.columns.get(name) for name in data.columns}
+                index={name: self.history_schema.index.get(name) for name in data.index.names},
+                columns={name: self.history_schema.columns.get(name) for name in data.columns}
             )
 
             return History(schema, data)
         else:
-            return History(self.schema, self.data.apply(func, *args, **kwargs))
+            return History(self.history_schema, self.data.apply(func, *args, **kwargs))
 
     def dropna(self):
-        return History(self.schema, self.data.dropna())
+        return History(self.history_schema, self.data.dropna())
 
     def head(self, n=5):
         return self.data.head(n)
@@ -311,18 +313,18 @@ class History(Serializable, metaclass=RegistryBase):
 
     def to_dict(self):
         return {
-            "schema": self.schema.to_dict(),
+            "history_schema": self.history_schema.to_dict(),
             "data": self.data.to_dict(orient="tight")
         }
 
     @classmethod
     def from_dict(cls, data: dict):
-        schema = data.get("schema", None)
+        history_schema = data.get("history_schema", None)
         data = data.get("data", pd.DataFrame())
-        return cls(schema=schema, data=data)
+        return cls(history_schema=history_schema, data=data)
 
     def copy(self):
-        return History(schema=self.schema, data=self.data.copy())
+        return History(history_schema=self.history_schema, data=self.data.copy())
 
     def store(self, storage_path, key):
         try:
@@ -332,14 +334,14 @@ class History(Serializable, metaclass=RegistryBase):
 
         history_storage = storage_path + "/history"
         self.data.to_hdf(history_storage + f"/data.h5", key=key, mode='w', format='table')
-        self.schema.store(history_storage + f"/schema", key)
+        self.history_schema.store(history_storage + f"/history_schema", key)
 
     @classmethod
     def load(cls, storage_path, key):
         history_storage = storage_path + "/history"
         data = pd.read_hdf(history_storage + "/data.h5", key, mode='r')
-        schema = HistorySchema.load(history_storage + "/schema", key)
-        return cls(schema=schema, data=data)
+        history_schema = HistorySchema.load(history_storage + "/schema", key)
+        return cls(history_schema=history_schema, data=data)
 
     @classmethod
     def cache_exists(cls, cache_path, key):
@@ -368,7 +370,7 @@ class History(Serializable, metaclass=RegistryBase):
         return self.data[key]
 
     def __str__(self):
-        return f"\n{self.schema}, \n{self.data}\n"
+        return f"\n{self.history_schema}, \n{self.data}\n"
 
     # endregion
 

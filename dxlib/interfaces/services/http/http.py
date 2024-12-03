@@ -1,9 +1,7 @@
-from abc import abstractmethod
-from dataclasses import dataclass
 from enum import Enum
 
-from dxlib.interfaces.servers.endpoint import Endpoint
-from dxlib.interfaces.servers.service_registry import ServiceRegistry
+from dxlib.interfaces.services.endpoint import Endpoint
+from dxlib.interfaces.services.service_registry import ServiceRegistry
 
 
 class HttpMethod(Enum):
