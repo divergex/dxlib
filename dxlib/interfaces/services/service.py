@@ -2,7 +2,6 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import List
 
-from .endpoint import Endpoint
 from .service_registry import ServiceRegistry
 
 

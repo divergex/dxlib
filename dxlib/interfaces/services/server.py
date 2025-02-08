@@ -18,7 +18,7 @@ class Server:
         self.endpoints[path] = func
         return func.__get__(service).endpoint
 
-    def register(self, service: Service, root_path=""):
+    def register(self, service: Service, root_path="", *args, **kwargs):
         for key, func in service.__class__.__dict__.items():
             if hasattr(func, "endpoint"):
                 endpoint = func.__get__(self).endpoint
@@ -27,4 +27,4 @@ class Server:
                 # add starting / if user has not added it
                 if not path.startswith("/"):
                     path = f"/{path}"
-                self.register_endpoint(service, path, func.__get__(service))
+                self.register_endpoint(service, path, func.__get__(service), *args, **kwargs)
