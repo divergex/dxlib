@@ -4,7 +4,6 @@ from typing import Dict, List
 
 import numpy as np
 import pandas as pd
-from attr import dataclass
 
 from dxlib.storage import Serializable, RegistryBase
 from .history_schema import HistorySchema

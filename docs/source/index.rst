@@ -6,9 +6,29 @@
 Welcome to dxlib's documentation!
 =================================
 
+History
+-------
+
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+
+   history/index
+
+Interfaces
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   interfaces/index
+
+Strategy
+--------
+
+.. toctree::
+   :maxdepth: 1
+
+   strategy/index
 
 
 
@@ -18,3 +38,4 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+

@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 import httpx
-from dxlib import History
+from dxlib.history import History
 from dxlib.interfaces import Server
 from httpx import ConnectError
 
