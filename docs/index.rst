@@ -12,7 +12,7 @@ History
 .. toctree::
    :maxdepth: 1
 
-   history/index
+   source/history/index
 
 Interfaces
 ----------
@@ -20,7 +20,7 @@ Interfaces
 .. toctree::
    :maxdepth: 1
 
-   interfaces/index
+   source/interfaces/index
 
 Strategy
 --------
@@ -28,7 +28,7 @@ Strategy
 .. toctree::
    :maxdepth: 1
 
-   strategy/index
+   source/strategy/index
 
 
 
