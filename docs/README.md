@@ -58,3 +58,9 @@ Then, rebuild the documentation as described above.
 
 Now you're ready to compile and view your Sphinx documentation!
 
+
+## Test build locally with GitHub CLI - nektos/act
+
+```sh
+gh act -j build
+```
