@@ -12,7 +12,8 @@ except ImportError as e:
         "Missing dependencies. Please install the required dependencies by running 'pip install dxlib[external.investing_com]'.")
 
 from dxlib.interfaces import market_interface
-from dxlib.core import History, HistorySchema, Security
+from dxlib.history import History, HistorySchema
+from dxlib.core import Security
 
 
 class InvestingCom(market_interface.MarketInterface):
@@ -54,7 +55,8 @@ class InvestingCom(market_interface.MarketInterface):
         request = self.get(url, params=params, headers=headers)
 
         response = request.json()
-        if not (request.status_code == 200 and (response["s"] == "ok" if endpoint in ["history.py", "quotes"] else True)):
+        if not (request.status_code == 200 and (
+        response["s"] == "ok" if endpoint in ["history.py", "quotes"] else True)):
             raise ConnectionError(
                 f"Request to Investing.com API failed with error message: {response['s']}."
                 if "nextTime" not in response
@@ -86,7 +88,7 @@ class InvestingCom(market_interface.MarketInterface):
 
         data = pd.DataFrame({
             'date': pd.to_datetime(response['t'], unit='s'),
-            'security': params['symbols'],
+            'security': params['symbol'],
             'close': response['c'],
             'open': response['o'],
             'high': response['h'],
@@ -98,7 +100,7 @@ class InvestingCom(market_interface.MarketInterface):
 
         return History(schema, data)
 
-    def _history(self, params: Dict[str, Any]) -> History:
+    def _historical(self, params: Dict[str, Any]) -> History:
         """
         Get historical data for a symbol.
 
@@ -113,7 +115,7 @@ class InvestingCom(market_interface.MarketInterface):
             response = self._request("history.py", params)
             return self._format_history(params, response)
         else:
-            history = History(schema=self.history_schema)
+            history = History(history_schema=self.history_schema)
 
             param = params.copy()
             param = {k: v for k, v in param.items() if k != 'symbols'}
@@ -125,13 +127,13 @@ class InvestingCom(market_interface.MarketInterface):
             return history
 
     def historical(self,
-                symbols: List[str] | str,
-                start: datetime.datetime,
-                end: datetime.datetime,
-                interval: Literal[1, 5, 15, 30, 60, 'D', 'W', 'M'] = 'D'
-                ):
-        return self._history({
-            'symbols': symbols,
+                   symbols: List[str] | str,
+                   start: datetime.datetime,
+                   end: datetime.datetime,
+                   interval: Literal[1, 5, 15, 30, 60, 'D', 'W', 'M'] = 'D'
+                   ):
+        return self._historical({
+            'symbols': symbols if isinstance(symbols, list) else [symbols],
             'resolution': interval,
             'from': int(start.timestamp()),
             'to': int(end.timestamp())

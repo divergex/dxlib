@@ -4,7 +4,7 @@ from functools import reduce
 
 import pandas as pd
 
-from .history import History, HistorySchema
+from dxlib.history import History, HistorySchema
 
 
 class Portfolio(History):

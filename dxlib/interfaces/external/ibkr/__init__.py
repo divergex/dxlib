@@ -12,6 +12,3 @@ class IbkrProtocol(TradingInterface, Protocol):
     @property
     def connection(self):
         return
-
-
-Ibkr = ibkr[IbkrProtocol]("Ibkr")

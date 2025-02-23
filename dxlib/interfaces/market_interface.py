@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from dxlib.core import History, HistorySchema
+from dxlib.history import History, HistorySchema
 from .interface import Interface
 
 

@@ -10,7 +10,7 @@ from .wrapper import IbkrWrapper
 
 
 class Ibkr(TradingInterface, EClient):
-    def __init__(self, host, port, client_id, *args, **kwargs):
+    def __init__(self, host: str, port: int, client_id: int, *args, **kwargs):
         self.conn = None
         self.thread = None
         self.wrapper = IbkrWrapper()
@@ -40,10 +40,6 @@ class Ibkr(TradingInterface, EClient):
         return self.thread
 
     def stop(self):
-        if self.thread:
-            self.market_interface.cancel()
-            self.account_interface.cancel()
-
         self.disconnect()
         self.thread.join()
         self.conn = None
