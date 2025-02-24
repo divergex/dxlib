@@ -1,10 +1,27 @@
-.. dxlib documentation master file, created by
-   sphinx-quickstart on Sat Nov 30 01:11:59 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. dxlib documentation
+Sat Nov 30 01:11:59 2024.
 
 Welcome to dxlib's documentation!
 =================================
+
+`dxlib` is a Python library for the Quantitative Finance ecosystem.
+It is one of many libraries that make up the `dx` suite of tools, which includes `dxcore` and `dxforge`.
+See our `website <https://divergex.github.io/>`_ for more information.
+
+.. toctree::
+   :maxdepth: 1
+
+   source/about
+   source/installation
+
+Quickstart
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   source/quickstart/index
+
 
 History
 -------

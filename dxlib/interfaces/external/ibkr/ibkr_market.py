@@ -8,9 +8,9 @@ import pandas as pd
 from ibapi.client import EClient
 from ibapi.contract import Contract
 
-from dxlib.core.history import History, HistorySchema
-from .wrapper import IbkrWrapper
+from dxlib.history import History, HistorySchema
 from ...market_interface import MarketInterface
+from .wrapper import IbkrWrapper
 
 
 class OrderType(Enum):

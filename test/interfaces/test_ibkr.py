@@ -1,12 +1,12 @@
 import time
 import unittest
 
-from dxlib.interfaces import Ibkr
+from dxlib.interfaces.external import ibkr
 
 
 class TestIbkr(unittest.TestCase):
     def setUp(self):
-        self.api = Ibkr("127.0.0.1", 4002, 0)
+        self.api = ibkr.Ibkr("127.0.0.1", 4002, 0)
         self.api.start()
 
     def tearDown(self):
