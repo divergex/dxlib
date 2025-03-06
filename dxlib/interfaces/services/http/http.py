@@ -1,3 +1,5 @@
+import json
+from http import HTTPStatus
 from enum import Enum
 
 from dxlib.interfaces.services.endpoint import Endpoint
@@ -11,26 +13,49 @@ class HttpMethod(Enum):
     DELETE = "DELETE"
 
 
+class HttpResponse:
+    @staticmethod
+    def error_response(message: str, status_code: int = HTTPStatus.INTERNAL_SERVER_ERROR):
+        return json.dumps({"error": message, "status": status_code}), status_code
+
+    @staticmethod
+    def success_response(data: dict, status_code: int = HTTPStatus.OK):
+        return json.dumps({"data": data, "status": status_code}), status_code
+
+
+def http_handler(x):
+    # no op function output handler
+    return x
+
+def http_exception_handler(e):
+    if isinstance(e, ValueError):
+        return HttpResponse.error_response("Bad Request: " + str(e), HTTPStatus.BAD_REQUEST)
+    return HttpResponse.error_response(str(e), HTTPStatus.INTERNAL_SERVER_ERROR)
+
+
 class HttpEndpoint(Endpoint):
-    def __init__(self, route, method="GET"):
+    def __init__(self, route, method="GET", handler=http_handler, exception_handler=http_exception_handler):
         super().__init__(route)
         self.method = method
+        self.func = None
+        self.handler = handler
+        self.exception_handler = exception_handler
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
     @classmethod
     def get(cls, route="", *args, **kwargs):
-        return ServiceRegistry.decorate_endpoint(cls(route, "GET"))
+        return ServiceRegistry.decorate_endpoint(cls(route, "GET"), *args, **kwargs)
 
     @classmethod
     def post(cls, route="", *args, **kwargs):
-        return ServiceRegistry.decorate_endpoint(cls(route, "POST"))
+        return ServiceRegistry.decorate_endpoint(cls(route, "POST"), *args, **kwargs)
 
     @classmethod
     def put(cls, route="", *args, **kwargs):
-        return ServiceRegistry.decorate_endpoint(cls(route, "PUT"))
+        return ServiceRegistry.decorate_endpoint(cls(route, "PUT"), *args, **kwargs)
 
     @classmethod
     def delete(cls, route="", *args, **kwargs):
-        return ServiceRegistry.decorate_endpoint(cls(route, "DELETE"))
+        return ServiceRegistry.decorate_endpoint(cls(route, "DELETE"), *args, **kwargs)

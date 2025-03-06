@@ -1,4 +1,5 @@
 from typing import Literal
+from functools import wraps
 
 import uvicorn
 from fastapi import FastAPI
@@ -7,6 +8,10 @@ from fastapi.exceptions import FastAPIError
 from dxlib.interfaces import HttpEndpoint, Service
 from dxlib.interfaces.services.protocols import Protocols
 from dxlib.interfaces.services.server import Server
+
+
+def exception_handler(e):
+    raise HTTPException(status_code=500, detail=e)
 
 
 class FastApiServer(Server, uvicorn.Server):
@@ -31,19 +36,30 @@ class FastApiServer(Server, uvicorn.Server):
         return {"status": "ok"}
 
     def register_endpoint(self, service, path, func, router=None):
-        endpoint = super().register_endpoint(service, path, func)
+        # self.endpoints[path] = func
+        # wrap function with endpoints handler and exception handler
+        def wrapped(*args, **kwargs):
+            try:
+                return endpoint.handler(func(*args, **kwargs))
+            except Exception as e:
+                return endpoint.exception_handler(e)
+        # update wrapped signature to match the original function
+        wrapped = wraps(func)(wrapped)
+
+        self.endpoints[path] = wrapped
+        endpoint = func.__get__(service).endpoint
         try:
             if router:
-                router.add_api_route(path, func, methods=[endpoint.method])
+                router.add_api_route(path, wrapped, methods=[endpoint.method])
             else:
-                self.app.add_api_route(path, func, methods=[endpoint.method])
+                self.app.add_api_route(path, wrapped, methods=[endpoint.method])
         except FastAPIError as e:
             print(e, 'Error')
 
     def include_router(self, router):
         self.app.include_router(router)
-        
-    def register(self, service: Service, root_path="", external_router=None):
+
+    def register(self, service: Service, root_path="", external_router=None, **kwargs):
         super().register(service, root_path, router=external_router)
         if hasattr(service, "router"):
             self.include_router(service.router)

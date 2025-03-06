@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Tuple, Set, List
 
 from dxlib.interfaces.services import Service, ServiceModel
-from dxlib.interfaces.services.http import HttpEndpoint
+from dxlib.interfaces.services.http import HttpEndpoint, http_exception_handler
 
 
 @dataclass
@@ -17,7 +17,7 @@ class ServiceSearch:
 
 
 class MeshService(Service):
-    def __init__(self, name, service_id):
+    def __init__(self, name, service_id=None):
         super().__init__(name, service_id)
         self.kv_store = {}
         self.services: Dict[str, Dict[str, ServiceModel]] = {}  # service name -> {service id -> instance}
@@ -61,7 +61,7 @@ class MeshService(Service):
             raise Exception("Service not found")
         return list(self.services.get(name, {}).values())
 
-    @HttpEndpoint.delete("/services/{name}/{id}")
+    @HttpEndpoint.delete("/services/{name}/{service_id}")
     def deregister_service(self, name: str, service_id: str):
         """Deregister a service instance by name and ID."""
         if name in self.services and service_id in self.services[name]:

@@ -1,2 +1,2 @@
 from .optim import *
-from .rsi import RsiStrategy
+from .signal_strategy import SignalStrategy

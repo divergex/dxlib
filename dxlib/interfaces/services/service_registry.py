@@ -1,6 +1,7 @@
 import inspect
 from abc import ABCMeta
 from typing import List
+from functools import wraps
 
 from .endpoint import Endpoint
 
@@ -25,9 +26,11 @@ class ServiceRegistry(ABCMeta):
     @classmethod
     def decorate_endpoint(cls, endpoint):
         def decorator(func):
-            func.endpoint = endpoint
-            return func
-
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                return func(*args, **kwargs)
+            wrapper.endpoint = endpoint
+            return wrapper
         return decorator
 
     @staticmethod

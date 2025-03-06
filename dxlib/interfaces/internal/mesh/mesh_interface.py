@@ -30,6 +30,15 @@ class MeshInterface:
         except httpx.ConnectError as e:
             print("Are you sure the mesh server is running?", e)
 
+    def deregister_service(self, name: str, service_id: str):
+        request = httpx.delete(f"{self.server.url}/services/{name}/{service_id}")
+        request.raise_for_status()
+        return request.json()
+
+    def get_service(self, name: str):
+        request = httpx.get(f"{self.server.url}/services/{name}")
+        request.raise_for_status()
+        return request.json()
 
     def search_services(self, tag: str):
         request = httpx.get(f"{self.server.url}/services/search?tag={tag}")
