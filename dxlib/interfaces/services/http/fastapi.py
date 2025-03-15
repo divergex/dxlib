@@ -2,6 +2,7 @@ from typing import Literal
 from functools import wraps
 
 import uvicorn
+from starlette.responses import JSONResponse
 from fastapi import FastAPI
 from fastapi.exceptions import FastAPIError
 
@@ -42,7 +43,8 @@ class FastApiServer(Server, uvicorn.Server):
             try:
                 return endpoint.handler(func(*args, **kwargs))
             except Exception as e:
-                return endpoint.exception_handler(e)
+                response = endpoint.exception_handler(e)
+                return JSONResponse(content=response, status_code=response.get("status", 200))
         # update wrapped signature to match the original function
         wrapped = wraps(func)(wrapped)
 

@@ -16,11 +16,11 @@ class HttpMethod(Enum):
 class HttpResponse:
     @staticmethod
     def error_response(message: str, status_code: int = HTTPStatus.INTERNAL_SERVER_ERROR):
-        return json.dumps({"error": message, "status": status_code}), status_code
+        return {"error": message, "status": status_code}
 
     @staticmethod
     def success_response(data: dict, status_code: int = HTTPStatus.OK):
-        return json.dumps({"data": data, "status": status_code}), status_code
+        return {"data": data, "status": status_code}
 
 
 def http_handler(x):
