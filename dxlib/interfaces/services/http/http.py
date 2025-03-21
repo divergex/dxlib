@@ -1,3 +1,4 @@
+import traceback
 import json
 from http import HTTPStatus
 from enum import Enum
@@ -11,6 +12,14 @@ class HttpMethod(Enum):
     POST = "POST"
     PUT = "PUT"
     DELETE = "DELETE"
+
+
+def serialize_exception(ex: Exception):
+    return {
+        "type": type(ex).__name__,
+        "message": str(ex),
+        "traceback": traceback.format_exc()
+    }
 
 
 class HttpResponse:
@@ -30,7 +39,7 @@ def http_handler(x):
 def http_exception_handler(e):
     if isinstance(e, ValueError):
         return HttpResponse.error_response("Bad Request: " + str(e), HTTPStatus.BAD_REQUEST)
-    return HttpResponse.error_response(str(e), HTTPStatus.INTERNAL_SERVER_ERROR)
+    return HttpResponse.error_response(serialize_exception(e), HTTPStatus.INTERNAL_SERVER_ERROR)
 
 
 class HttpEndpoint(Endpoint):

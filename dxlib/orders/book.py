@@ -30,6 +30,8 @@ class LimitOrderBook:
         self.tick_size = tick_size
 
     def cancel_order(self, order_id):
+        if not order_id in self.orders:
+            return
         order = self.orders[order_id]
         tree = self.asks if order.side == 'ask' else self.bids
         level = tree.search(order.price)

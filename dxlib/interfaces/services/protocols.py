@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class Protocols(Enum):
+    TCP = "tcp"
     HTTP = "http"
     HTTPS = "https"
     RPC = "rpc"
@@ -9,3 +10,4 @@ class Protocols(Enum):
     PRODUCER = "producer"
     CONSUMER = "consumer"
     DATABASE = "database"
+    ROUTER = "router"

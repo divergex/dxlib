@@ -1,7 +1,9 @@
-from dataclasses import dataclass
+from collections import defaultdict
+from dataclasses import dataclass, field
 from typing import Any, Dict, Tuple, Set, List
+import json
 
-from dxlib.interfaces.services import Service, ServiceModel
+from dxlib.interfaces.services import Service, ServiceData
 from dxlib.interfaces.services.http import HttpEndpoint, http_exception_handler
 
 
@@ -20,23 +22,29 @@ class MeshService(Service):
     def __init__(self, name, service_id=None):
         super().__init__(name, service_id)
         self.kv_store = {}
-        self.services: Dict[str, Dict[str, ServiceModel]] = {}  # service name -> {service id -> instance}
+        self.services: Dict[str, Dict[str, ServiceData]] = {}  # service name -> {service id -> instance}
         self.tagged: Dict[str, Set[Tuple[str, str]]] = {}  # tag -> set of (name, id)
-        self.service_index: Dict[Tuple[str, str], ServiceModel] = {}
+        self.service_index: Dict[Tuple[str, str], ServiceData] = {}
 
     @HttpEndpoint.post("/services")
-    def register_service(self, service: ServiceModel):
+    def register_service(self, service: ServiceData):
+        """
+        Updates existing services endpoints, by adding to the service dictionary and the service index.
+        """
         if service.name not in self.services:
             self.services[service.name] = {}
-        self.services[service.name][service.service_id] = service
+        if service.service_id not in self.services[service.name]:
+            self.service_index[(service.name, service.service_id)] = service
 
-        self.service_index[(service.name, service.service_id)] = service
+        if service.service_id not in self.services[service.name]:
+            self.services[service.name][service.service_id] = service
+        else:
+            self.services[service.name][service.service_id].update(service)
 
         for tag in service.tags:
             if tag not in self.tagged:
                 self.tagged[tag] = set()
             self.tagged[tag].add((service.name, service.service_id))
-        return service
 
     def _search_tag(self, tag: str):
         return [self.service_index[(name, service_id)] for name, service_id in self.tagged.get(tag, set())]
@@ -44,12 +52,12 @@ class MeshService(Service):
     @HttpEndpoint.post("/services/search")
     def search_services(self, search: ServiceSearch):
         """Search for services by tag."""
-        results = []
+        results = defaultdict(dict)
         if not search.tag:
-            return list(self.service_index.values())
+            return self.services
         for service in self.service_index.values():
             if any(tag in service.tags for tag in search.tag):
-                results.append(service)
+                results[name].update({service_id: service})
         if not results:
             raise Exception("No services found with the given tag")
         return results

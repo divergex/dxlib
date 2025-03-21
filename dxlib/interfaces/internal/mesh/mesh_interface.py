@@ -1,10 +1,11 @@
 import json
-from typing import Any
+from typing import Any, List
 
 import httpx
 from httpx import HTTPStatusError
 
-from dxlib.interfaces.services import Server, ServiceModel
+from dxlib.storage import RegistryBase
+from dxlib.interfaces.services import Server, ServiceData
 
 
 class MeshInterface:
@@ -24,9 +25,9 @@ class MeshInterface:
         request.raise_for_status()
         return request.json()
 
-    def register_service(self, service: ServiceModel):
+    def register_service(self, service: ServiceData):
         try:
-            request = httpx.post(f"{self.server.url}/services", json=service.to_dict())
+            request = httpx.post(f"{self.server.url}/services", data=service.__json__())
             request.raise_for_status()
             return request.json()
         except httpx.ConnectError as e:
@@ -37,7 +38,7 @@ class MeshInterface:
         request.raise_for_status()
         return request.json()
 
-    def get_service(self, name: str):
+    def get_service(self, name: str) -> List[ServiceData]:
         if not self.server.url:
             raise ValueError("No server registered, ignoring mesh.")
 
@@ -50,7 +51,8 @@ class MeshInterface:
             if error and "Service not found" in error:
                 raise ValueError("Service not found")
             raise e
-        return request.json()
+        instances = request.json()
+        return [ServiceData(**instance) for instance in instances]
 
     def search_services(self, tag: str):
         request = httpx.get(f"{self.server.url}/services/search?tag={tag}")

@@ -30,13 +30,16 @@ class RegistryBase(ABCMeta):
         'bool': bool,
         'datetime': datetime.datetime,
         'Timestamp': pd.Timestamp,
-        'Decimal': Decimal
+        'Decimal': Decimal,
+        "set": set,
     }
 
     SERIALIZE = {
         datetime.datetime: lambda x: x.isoformat(),
         pd.Timestamp: lambda x: x.isoformat(),
-        Decimal: lambda x: float(x)
+        Decimal: lambda x: float(x),
+        set: lambda x: list(x),
+        # dict: lambda x: {json.dumps(x): json_serializer(v) for k, v in x.items()},
     }
 
     def __new__(cls, name, bases, attrs):
