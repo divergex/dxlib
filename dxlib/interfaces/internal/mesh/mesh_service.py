@@ -1,10 +1,11 @@
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any, Dict, Tuple, Set, List
+from typing import Any, Dict, Tuple, Set, List, Type
 import json
 
 from dxlib.interfaces.services import Service, ServiceData
 from dxlib.interfaces.services.http import HttpEndpoint, http_exception_handler
+from dxlib.storage import Serializable, RegistryBase, T
 
 
 @dataclass
@@ -14,9 +15,14 @@ class KeyValue:
 
 
 @dataclass
-class ServiceSearch:
-    tag: List[str] | None = None
+class ServiceSearch(Serializable, metaclass=RegistryBase):
+    tag: List[str] = field(default_factory=list)
 
+    def from_dict(cls: Type[T], data: dict) -> T:
+        return cls(**data)
+
+    def to_dict(self) -> dict:
+        return self.__dict__
 
 class MeshService(Service):
     def __init__(self, name, service_id=None):

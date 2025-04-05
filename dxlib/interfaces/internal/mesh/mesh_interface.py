@@ -6,6 +6,7 @@ from httpx import HTTPStatusError
 
 from dxlib.storage import RegistryBase
 from dxlib.interfaces.services import Server, ServiceData
+from .mesh_service import ServiceSearch
 
 
 class MeshInterface:
@@ -13,6 +14,7 @@ class MeshInterface:
         self.server: Server | None = None
 
     def register(self, server: Server):
+        print(f"Registering server {server.host}:{server.port}")
         self.server = server
 
     def get_key_value(self, key: str):
@@ -54,7 +56,8 @@ class MeshInterface:
         instances = request.json()
         return [ServiceData(**instance) for instance in instances]
 
-    def search_services(self, tag: str):
-        request = httpx.get(f"{self.server.url}/services/search?tag={tag}")
+    def search_services(self, tag: List[str] = None):
+        search = ServiceSearch(tag or [])
+        request = httpx.post(f"{self.server.url}/services/search", data=search.__json__())
         request.raise_for_status()
         return request.json()

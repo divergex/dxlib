@@ -2,6 +2,7 @@ from asyncio import Protocol
 
 from dxlib.module_proxy import ModuleProxy
 from dxlib.interfaces.interface import Interface, TradingInterface
+from .ibkr import Ibkr
 
 ibkr = ModuleProxy("dxlib.interfaces.external.ibkr.ibkr")
 

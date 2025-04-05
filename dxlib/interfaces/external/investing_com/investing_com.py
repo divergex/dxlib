@@ -55,7 +55,7 @@ class InvestingCom(market_interface.MarketInterface):
         request = self.get(url, params=params, headers=headers)
 
         response = request.json()
-        if not (request.status_code == 200 and (
+        if len(response) > 0 and not (request.status_code == 200 and (
         response["s"] == "ok" if endpoint in ["history.py", "quotes"] else True)):
             raise ConnectionError(
                 f"Request to Investing.com API failed with error message: {response['s']}."
@@ -85,6 +85,12 @@ class InvestingCom(market_interface.MarketInterface):
                         response: Dict[str, Any]
                         ) -> History:
         schema = self.history_schema
+
+        if len(response) == 0:
+            data = pd.DataFrame([], columns=list(schema.columns.keys()))
+            # set index names
+            data.index = pd.MultiIndex.from_tuples([], names=list(schema.index.keys()))
+            return History(schema, data)
 
         data = pd.DataFrame({
             'date': pd.to_datetime(response['t'], unit='s'),

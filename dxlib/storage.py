@@ -171,4 +171,61 @@ class Cache:
 
         return cache_path, key
 
+    def store(self, storage: str, key: str, data: Serializable):
+        """
+        Store an object's data in an HDF5 cache file.
+
+        Args:
+            storage (str): The name/identifier for the storage unit.
+            key (str): The key to store the data under in the storage unit.
+            data (Serializable): The object to store.
+        """
+        cache_path = self._path(storage)
+        if not os.path.exists(cache_path):
+            os.makedirs(cache_path)
+
+        data.store(cache_path, key)
+
+    # Cache a function call given its arguments, if the cache does not exist, else load it
+    def _default_hash_func(self, *args, **kwargs):
+        """
+        Default hash function to generate a unique key for the cache.
+
+        Args:
+            *args: Positional arguments for the function.
+            **kwargs: Keyword arguments for the function.
+        Returns:
+            str: The generated hash key.
+        """
+        # try to serialize with Registry, then with json
+        try:
+            return json.dumps(args, default=RegistryBase.json_serializer)
+        except TypeError:
+            pass
+
+    def cached(self, storage: str, func: callable, *args, hash_func: callable = None, **kwargs):
+        """
+        Function to cache the result of a wrapped function call.
+
+        Args:
+            storage (str): The name/identifier for the storage unit.
+            func (callable): The function to cache.
+            hash_func (callable): Optional hash function to generate cache keys.
+            *args: Positional arguments for the function.
+            **kwargs: Keyword arguments for the function.
+        """
+        if hash_func is None:
+            hash_func = self._default_hash_func
+        key = hash_func(*args, **kwargs)
+        cache_path = self._path(storage)
+        if not os.path.exists(cache_path):
+            os.makedirs(cache_path)
+
+        if not os.path.exists(os.path.join(cache_path, key)):
+            result = func(*args, **kwargs)
+            self.store(storage, key, result)
+            return result
+        else:
+            return self.load(storage, key)
+
     # endregion
