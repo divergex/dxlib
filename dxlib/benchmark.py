@@ -5,6 +5,7 @@ import functools
 class Benchmark:
     def __init__(self):
         self.times = {}
+        self.active_timers = {}
 
     def track(self, name):
         def decorator(func):
@@ -21,6 +22,23 @@ class Benchmark:
                 return result
             return wrapper
         return decorator
+
+    def record(self, name):
+        """
+        Start or stop timing a specific section of code.
+        """
+        if name not in self.active_timers:
+            # Start timing the section
+            self.active_timers[name] = time.perf_counter()
+        else:
+            # Stop timing the section and record the elapsed time
+            start_time = self.active_timers.pop(name)
+            elapsed_time = time.perf_counter() - start_time
+            if name in self.times:
+                self.times[name]['total'] += elapsed_time
+                self.times[name]['count'] += 1
+            else:
+                self.times[name] = {'total': elapsed_time, 'count': 1}
 
     def report(self):
         for name, info in self.times.items():
@@ -49,7 +67,6 @@ class Benchmark:
         """
         A decorator that runs a function `n` times and prints the average execution time.
         """
-
         def decorator(func):
             @functools.wraps(func)
             def wrapper(*args, **kwargs):

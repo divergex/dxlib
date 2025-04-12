@@ -1,9 +1,10 @@
 import os
-from functools import reduce
-from typing import Dict, List, Union, Tuple
+from datetime import datetime
+from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
+import polars as pl
 
 from dxlib.storage import Serializable, RegistryBase
 from .history_schema import HistorySchema
@@ -204,7 +205,15 @@ class History(Serializable, metaclass=RegistryBase):
         except KeyError:
             return History(history_schema=self.history_schema.copy(), data=pd.DataFrame(columns=columns, index=self.data.index))
 
-    def get(self, index: Dict[str, slice | list] = None, columns: List[str] | str = None, raw=False) -> "History":
+    @staticmethod
+    def to_native(v):
+        if isinstance(v, pd.Timestamp):
+            return v.to_pydatetime()
+        if hasattr(v, "item"):
+            return v.item()
+        return v
+
+    def get(self, index: Dict[str, slice | list] = None, columns: List[str] | str = None, raw=False, *args, **kwargs) -> Union["History", pd.DataFrame]:
         """
         Get a subset of the history, given values or a slice of desired index values for each index.
 
@@ -218,29 +227,52 @@ class History(Serializable, metaclass=RegistryBase):
             >>> history.get(index={"date": slice("2021-01-01", "2021-01-03")})
             # Returns a history with only the data for the dates 2021-01-01 to 2021-01-03.
         """
+        b = kwargs.get("b")
         index = index or {}
         columns = columns or self.columns
 
-        index_filters = [self.data.index.get_level_values(idx).isin(values) for idx, values in index.items() if
-                         isinstance(values, list)]
-        index_slices = [index.get(level, slice(None)) for level in index.keys() if isinstance(index[level], slice)]
+        b.record("get.convert")
+        data = pl.DataFrame(self.data.reset_index())
+        b.record("get.convert")
 
-        data = self.data
+        if "date" in data.columns:
+            data = data.with_columns(pl.col("date").cast(pl.Datetime("us")))
 
-        if index_filters:
-            masks = reduce(lambda x, y: x & y, index_filters)
-            data = data[masks]
+        b.record("get.filter")
+        for idx, values in index.items():
+            if isinstance(values, list):
+                native_values = [
+                    self.to_native(v).replace(microsecond=0) if isinstance(v, datetime) else self.to_native(v)
+                    for v in values
+                ]
+                data = data.filter(pl.col(idx).is_in(native_values))
+            elif isinstance(values, slice):
+                start, stop = values.start, values.stop
 
-        if index_slices:
-            idx = pd.IndexSlice
-            data = data.sort_index().loc[idx[tuple(index_slices), columns]]
+                data = data.filter(pl.col(idx).is_between(pl.lit(start), pl.lit(stop)))
+        b.record("get.filter")
+
+        # Handle column selection
+        if isinstance(columns, str):
+            columns = [columns]
+
+        # Select the desired columns
+        b.record("get.reconvert")
+        data = data.select(columns + list(self.indices))
+        data = data.to_pandas()
+        data = data.set_index(self.indices)
+        b.record("get.reconvert")
+
+        if raw:
+            return data
 
         schema = HistorySchema(
             self.history_schema.index.copy(),
             {col: self.history_schema.columns[col] for col in columns}
         )
 
-        return History(schema, data[columns]) if not raw else data
+        return History(schema, data)
+
 
     def set(self, values: Dict | pd.DataFrame):
         """

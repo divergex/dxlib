@@ -28,12 +28,17 @@ class HistoryView:
 
     @staticmethod
     def apply(history: History, function: callable):
-        return history.get(columns=["close"]).apply({"security": function})
+        return history.get(columns=["close"], b=benchmark).apply({"security": function})
 
     @staticmethod
-    def iter(origin: History):
+    @benchmark.track("HistoryView.get")
+    def get(origin: History, idx):
+        return origin.get({"date": [idx]}, ["close"], b=benchmark)
+
+    @classmethod
+    def iter(cls, origin: History):
         for idx in origin.index(name="date"):
-            yield origin.get({"date": [idx]}, ["close"])
+            yield cls.get(origin, idx)
 
 @nb.njit
 def fast_rsi(values: np.ndarray, window: int):
@@ -164,9 +169,9 @@ def main():
 
     print(history.head())
 
-    strategy = SignalStrategy(Rsi(period=HistoryView.len(history)))
-    print("Backtest")
-    print(strategy.execute(history, history, HistoryView))
+    # strategy = SignalStrategy(Rsi(period=HistoryView.len(history)))
+    # print("Backtest")
+    # print(strategy.execute(history, history, HistoryView))
 
     strategy = SignalStrategy(Rsi())
     executor = Executor(strategy)
