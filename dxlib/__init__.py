@@ -4,6 +4,9 @@ from . import strategy
 from . import core
 from .history import *
 from .core import *
+from .benchmark import *
+from .strategy import *
+from .storage import *
 
 
 __all__ = [

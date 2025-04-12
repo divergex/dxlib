@@ -203,29 +203,19 @@ class Cache:
         except TypeError:
             pass
 
-    def cached(self, storage: str, func: callable, *args, hash_func: callable = None, **kwargs):
-        """
-        Function to cache the result of a wrapped function call.
-
-        Args:
-            storage (str): The name/identifier for the storage unit.
-            func (callable): The function to cache.
-            hash_func (callable): Optional hash function to generate cache keys.
-            *args: Positional arguments for the function.
-            **kwargs: Keyword arguments for the function.
-        """
-        if hash_func is None:
-            hash_func = self._default_hash_func
-        key = hash_func(*args, **kwargs)
+    def cached(self,
+               storage: str,
+               object_type: Type[Serializable],
+               cacheable_function: callable,
+               *args,
+               hash_function: callable = None,
+               **kwargs):
+        key = hash_function(*args, **kwargs) if hash_function else self._default_hash_func(*args, **kwargs)
         cache_path = self._path(storage)
-        if not os.path.exists(cache_path):
-            os.makedirs(cache_path)
-
-        if not os.path.exists(os.path.join(cache_path, key)):
-            result = func(*args, **kwargs)
-            self.store(storage, key, result)
-            return result
+        if self.exists(storage, key, object_type):
+            print(f"Loading cached data for {key}")
+            return object_type.load(cache_path, key)
         else:
-            return self.load(storage, key)
+            return cacheable_function(*args, **kwargs)
 
     # endregion
