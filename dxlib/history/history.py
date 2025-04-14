@@ -1,10 +1,9 @@
 import os
-from datetime import datetime
+from functools import reduce
 from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
-import polars as pl
 
 from dxlib.storage import Serializable, RegistryBase
 from .history_schema import HistorySchema
@@ -213,7 +212,7 @@ class History(Serializable, metaclass=RegistryBase):
             return v.item()
         return v
 
-    def get(self, index: Dict[str, slice | list] = None, columns: List[str] | str = None, raw=False, *args, **kwargs) -> Union["History", pd.DataFrame]:
+    def get(self, index: Dict[str, slice | list] = None, columns: List[str] | str = None, raw=False) -> Union["History", pd.DataFrame]:
         """
         Get a subset of the history, given values or a slice of desired index values for each index.
 
@@ -227,51 +226,29 @@ class History(Serializable, metaclass=RegistryBase):
             >>> history.get(index={"date": slice("2021-01-01", "2021-01-03")})
             # Returns a history with only the data for the dates 2021-01-01 to 2021-01-03.
         """
-        b = kwargs.get("b")
         index = index or {}
         columns = columns or self.columns
 
-        b.record("get.convert")
-        data = pl.DataFrame(self.data.reset_index())
-        b.record("get.convert")
+        index_filters = [self.data.index.get_level_values(idx).isin(values) for idx, values in index.items() if
+                         isinstance(values, list)]
+        index_slices = [index.get(level, slice(None)) for level in index.keys() if isinstance(index[level], slice)]
 
-        if "date" in data.columns:
-            data = data.with_columns(pl.col("date").cast(pl.Datetime("us")))
+        data = self.data
 
-        b.record("get.filter")
-        for idx, values in index.items():
-            if isinstance(values, list):
-                native_values = [
-                    self.to_native(v).replace(microsecond=0) if isinstance(v, datetime) else self.to_native(v)
-                    for v in values
-                ]
-                data = data.filter(pl.col(idx).is_in(native_values))
-            elif isinstance(values, slice):
-                start, stop = values.start, values.stop
+        if index_filters:
+            masks = reduce(lambda x, y: x & y, index_filters)
+            data = data[masks]
 
-                data = data.filter(pl.col(idx).is_between(pl.lit(start), pl.lit(stop)))
-        b.record("get.filter")
-
-        # Handle column selection
-        if isinstance(columns, str):
-            columns = [columns]
-
-        # Select the desired columns
-        b.record("get.reconvert")
-        data = data.select(columns + list(self.indices))
-        data = data.to_pandas()
-        data = data.set_index(self.indices)
-        b.record("get.reconvert")
-
-        if raw:
-            return data
+        if index_slices:
+            idx = pd.IndexSlice
+            data = data.sort_index().loc[idx[tuple(index_slices), columns]]
 
         schema = HistorySchema(
             self.history_schema.index.copy(),
             {col: self.history_schema.columns[col] for col in columns}
         )
 
-        return History(schema, data)
+        return History(schema, data[columns]) if not raw else data
 
 
     def set(self, values: Dict | pd.DataFrame):
@@ -352,10 +329,15 @@ class History(Serializable, metaclass=RegistryBase):
             for idx, f in func.items():
                 data = data.groupby(idx, group_keys=False).apply(f, *args, **kwargs)
 
-            schema = HistorySchema(
-                index={name: self.history_schema.index.get(name) for name in data.index.names},
-                columns={name: self.history_schema.columns.get(name) for name in data.columns}
-            )
+            if isinstance(data, pd.DataFrame):
+                schema = HistorySchema(
+                    index={name: self.history_schema.index.get(name) for name in data.index.names},
+                    columns={name: self.history_schema.columns.get(name) for name in data.columns}
+                )
+            elif isinstance(data, pd.Series):
+                schema = self.history_schema.copy()
+            else:
+                raise ValueError("The function must return a DataFrame or Series.")
 
             return History(schema, data)
         else:

@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 
-from ..history import History, HistorySchema
+from dxlib.history import History, HistorySchema
 
 
 class Strategy(ABC):

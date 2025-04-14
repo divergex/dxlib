@@ -1,12 +1,12 @@
 from . import interfaces
 from . import storage
-from . import strategy
 from . import core
+
 from .history import *
 from .core import *
 from .benchmark import *
-from .strategy import *
 from .storage import *
+from .execution import *
 
 
 __all__ = [

@@ -6,7 +6,7 @@ from dxlib import HistorySchema
 from dxlib.core.indicators import RSI
 from dxlib.core.signal import Signal
 from dxlib.interfaces import MockMarket
-from dxlib.strategy.custom import SignalStrategy
+from dxlib.execution.strategy import SignalStrategy
 
 
 class TestRsi(unittest.TestCase):
