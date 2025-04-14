@@ -30,13 +30,16 @@ class RegistryBase(ABCMeta):
         'bool': bool,
         'datetime': datetime.datetime,
         'Timestamp': pd.Timestamp,
-        'Decimal': Decimal
+        'Decimal': Decimal,
+        "set": set,
     }
 
     SERIALIZE = {
         datetime.datetime: lambda x: x.isoformat(),
         pd.Timestamp: lambda x: x.isoformat(),
-        Decimal: lambda x: float(x)
+        Decimal: lambda x: float(x),
+        set: lambda x: list(x),
+        # dict: lambda x: {json.dumps(x): json_serializer(v) for k, v in x.items()},
     }
 
     def __new__(cls, name, bases, attrs):
@@ -167,5 +170,52 @@ class Cache:
             os.makedirs(cache_path)
 
         return cache_path, key
+
+    def store(self, storage: str, key: str, data: Serializable):
+        """
+        Store an object's data in an HDF5 cache file.
+
+        Args:
+            storage (str): The name/identifier for the storage unit.
+            key (str): The key to store the data under in the storage unit.
+            data (Serializable): The object to store.
+        """
+        cache_path = self._path(storage)
+        if not os.path.exists(cache_path):
+            os.makedirs(cache_path)
+
+        data.store(cache_path, key)
+
+    # Cache a function call given its arguments, if the cache does not exist, else load it
+    def _default_hash_func(self, *args, **kwargs):
+        """
+        Default hash function to generate a unique key for the cache.
+
+        Args:
+            *args: Positional arguments for the function.
+            **kwargs: Keyword arguments for the function.
+        Returns:
+            str: The generated hash key.
+        """
+        # try to serialize with Registry, then with json
+        try:
+            return json.dumps(args, default=RegistryBase.json_serializer)
+        except TypeError:
+            pass
+
+    def cached(self,
+               storage: str,
+               object_type: Type[Serializable],
+               cacheable_function: callable,
+               *args,
+               hash_function: callable = None,
+               **kwargs):
+        key = hash_function(*args, **kwargs) if hash_function else self._default_hash_func(*args, **kwargs)
+        cache_path = self._path(storage)
+        if self.exists(storage, key, object_type):
+            print(f"Loading cached data for {key}")
+            return object_type.load(cache_path, key)
+        else:
+            return cacheable_function(*args, **kwargs)
 
     # endregion

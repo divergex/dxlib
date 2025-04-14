@@ -1,6 +1,6 @@
 import os
 from functools import reduce
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
@@ -178,7 +178,41 @@ class History(Serializable, metaclass=RegistryBase):
         self.data = self.data.T.groupby(self.data.columns).first().T
         return self
 
-    def get(self, index: Dict[str, slice | list] = None, columns: List[str] | str = None, raw=False) -> "History":
+    def loc(self, index: List[Union[tuple, str]] = None, columns: List[str] | str = None) -> "History":
+        """byu
+        Get a subset of the history, given values or a slice of desired index values for each index.
+
+        Args:
+            index (Dict[str, slice]): The desired index values for each index.
+            columns (List[str] | str): The desired columns.
+
+        Example:
+            >>> history = History()
+            >>> history.loc(index=[("2021-01-01", "AAPL"), ("2021-01-02", "AAPL")])
+            # Returns a history with only the data for the dates 2021-01-01 and 2021-01-02 for AAPL.
+        """
+        if columns is None:
+            columns = self.data.columns
+        try:
+            available_columns = self.data.columns.intersection(columns)
+            if index is not None:
+                available_index = self.data.index.intersection(index)
+                data = self.data.loc[available_index, available_columns]
+            else:
+                data = self.data.loc[:, available_columns]
+            return History(history_schema=self.history_schema.copy(), data=data)
+        except KeyError:
+            return History(history_schema=self.history_schema.copy(), data=pd.DataFrame(columns=columns, index=self.data.index))
+
+    @staticmethod
+    def to_native(v):
+        if isinstance(v, pd.Timestamp):
+            return v.to_pydatetime()
+        if hasattr(v, "item"):
+            return v.item()
+        return v
+
+    def get(self, index: Dict[str, slice | list] = None, columns: List[str] | str = None, raw=False) -> Union["History", pd.DataFrame]:
         """
         Get a subset of the history, given values or a slice of desired index values for each index.
 
@@ -209,7 +243,13 @@ class History(Serializable, metaclass=RegistryBase):
             idx = pd.IndexSlice
             data = data.sort_index().loc[idx[tuple(index_slices), columns]]
 
-        return data if raw else History(history_schema=self.history_schema.copy(), data=data[columns])
+        schema = HistorySchema(
+            self.history_schema.index.copy(),
+            {col: self.history_schema.columns[col] for col in columns}
+        )
+
+        return History(schema, data[columns]) if not raw else data
+
 
     def set(self, values: Dict | pd.DataFrame):
         """
@@ -289,10 +329,15 @@ class History(Serializable, metaclass=RegistryBase):
             for idx, f in func.items():
                 data = data.groupby(idx, group_keys=False).apply(f, *args, **kwargs)
 
-            schema = HistorySchema(
-                index={name: self.history_schema.index.get(name) for name in data.index.names},
-                columns={name: self.history_schema.columns.get(name) for name in data.columns}
-            )
+            if isinstance(data, pd.DataFrame):
+                schema = HistorySchema(
+                    index={name: self.history_schema.index.get(name) for name in data.index.names},
+                    columns={name: self.history_schema.columns.get(name) for name in data.columns}
+                )
+            elif isinstance(data, pd.Series):
+                schema = self.history_schema.copy()
+            else:
+                raise ValueError("The function must return a DataFrame or Series.")
 
             return History(schema, data)
         else:
@@ -339,22 +384,19 @@ class History(Serializable, metaclass=RegistryBase):
     def load(cls, storage_path, key):
         history_storage = storage_path + "/history"
         data = pd.read_hdf(history_storage + "/data.h5", key, mode='r')
-        history_schema = HistorySchema.load(history_storage + "/schema", key)
+        history_schema = HistorySchema.load(history_storage + "/history_schema", key)
         return cls(history_schema=history_schema, data=data)
 
     @classmethod
     def cache_exists(cls, cache_path, key):
         file_exists = os.path.exists(cache_path + f"/history/data.h5") and os.path.exists(
-            cache_path + f"/history/schema/")
-        schema_exists = os.path.exists(cache_path + f"/history/schema/{key}.json")
+            cache_path + f"/history/history_schema/")
+        schema_exists = os.path.exists(cache_path + f"/history/history_schema/{key}.json")
         try:
-            store = pd.HDFStore(cache_path + f"/history/data.h5")
-        except FileNotFoundError:
+            with pd.HDFStore(cache_path + "/history/data.h5") as store:
+                data_exists = f"/{key}" in store.keys()
+        except (FileNotFoundError, OSError, KeyError):
             return False
-        try:
-            data_exists = f"/{key}" in store.keys()
-        finally:
-            store.close()
 
         return file_exists and schema_exists and data_exists
 

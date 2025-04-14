@@ -34,17 +34,34 @@ class IbkrMarket(MarketInterface):
         self.thread.start()
         return self.thread
 
-    def _quote(self, symbol: str):
+    def _quote(self, symbol: str, sec_type: str = "STK", exchange: str = "SMART", currency: str = "USD"):
         contract = Contract()
         contract.symbol = symbol
-        contract.secType = "STK"
-        contract.exchange = "SMART"
-        contract.currency = "USD"
+        contract.secType = sec_type
+        contract.exchange = exchange
+        contract.currency = currency
 
         req_id = self.wrapper.next_order_id or 1000
-        self.client.reqMarketDataType(3)
+        self.client.reqMarketDataType(4)  # Request live market data
         self.client.reqMktData(req_id, contract, "", False, False, [])
+
+        self.requests.setdefault("market_data", []).append(req_id)
         return req_id
+
+    def quote(self, symbols: list[str] | str) -> dict[str, float]:
+        if isinstance(symbols, str):
+            symbols = [symbols]
+        assert len(symbols) == 1, "Only one symbol is supported"
+        assert self.client.isConnected()
+
+        req_id = self._quote(symbols[0])
+        self.requests.setdefault("quote", []).append(req_id)
+
+        while not self.wrapper.get_end(req_id):
+            pass
+
+        data = self.wrapper.get_data(req_id)
+        return data
 
     def _historical(self, symbol: str, callback: Callable[[Any], None] = None):
         contract = Contract()

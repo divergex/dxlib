@@ -22,7 +22,10 @@ class TestIbkr(unittest.TestCase):
         accounts = self.api.account_interface.accounts()
         print(accounts)
 
-
+    def test_market_data(self):
+        symbol = "AAPL"
+        wtf = self.api.market_interface.quote(symbol)
+        print(wtf)
 
 if __name__ == '__main__':
     unittest.main()

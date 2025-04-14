@@ -1,23 +1,5 @@
-from dxlib.strategy.executor import Executor
 from .security import Security
 from .portfolio import Portfolio
+from .signal import *
 
-__all__ = ['Executor', 'Security', 'Portfolio']
-
-__all__ = [
-    "Executor",
-    "Security",
-    "Portfolio",
-]
-
-__all__ = [
-    "Executor",
-    "Security",
-    "Portfolio",
-]
-
-__all__ = [
-    "Executor",
-    "Security",
-    "Portfolio",
-]
+__all__ = ['Security', 'Portfolio', 'Signal']

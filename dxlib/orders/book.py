@@ -30,6 +30,8 @@ class LimitOrderBook:
         self.tick_size = tick_size
 
     def cancel_order(self, order_id):
+        if not order_id in self.orders:
+            return
         order = self.orders[order_id]
         tree = self.asks if order.side == 'ask' else self.bids
         level = tree.search(order.price)
@@ -68,13 +70,13 @@ class LimitOrderBook:
                 best_order = best_level.head()
                 if best_order.quantity <= order.quantity:
                     transactions.append(
-                        make_transaction(order.uuid, best_order.uuid, best_order.price, best_order.quantity))
+                        make_transaction(order.client, best_order.client, best_order.price, best_order.quantity))
                     order.quantity -= best_order.quantity
                     best_level.remove_order()
                     self.orders[best_order.uuid].quantity = 0
                     best_order.quantity = 0
                 else:
-                    transactions.append(make_transaction(order.uuid, best_order.uuid, best_order.price, order.quantity))
+                    transactions.append(make_transaction(order.client, best_order.client, best_order.price, order.quantity))
                     best_order.quantity -= order.quantity
                     self.orders[best_order.uuid].quantity = best_order.quantity
                     order.quantity = 0

@@ -55,6 +55,21 @@ class IbkrMarketWrapper(IbkrBaseWrapper):
     def cancelMktDepth(self, reqId: TickerId, isSmartDepth: bool):
         self.set_end(reqId)
 
+    @CallbackBase.callback("reqId")
+    @StoreBase.store("reqId")
+    def tickPrice(self, reqId: int, tickType: int, price: float, attrib):
+        return {"tickType": tickType, "price": price}
+
+    @CallbackBase.callback("reqId")
+    @StoreBase.store("reqId")
+    def tickSize(self, reqId: int, tickType: int, size: int):
+        return {"tickType": tickType, "size": size}
+
+    def cancelMktData(self, reqId: int):
+        self.set_end(reqId)
+
+    def tickSnapshotEnd(self, reqId:int):
+        self.set_end(reqId)
 
 class IbkrAccountWrapper(IbkrBaseWrapper):
     def __init__(self):

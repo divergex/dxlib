@@ -45,7 +45,7 @@ class StoreBase:
         self._data_storage.setdefault(identifier, []).append(data)
 
     def get_data(self, identifier: Any) -> List[Any] | None:
-        return self._data_storage.get(identifier, None)
+        return self._data_storage.get(identifier, None).pop(0)
 
     def set_end(self, identifier: Any):
         self._data_end[identifier] = True
@@ -63,9 +63,7 @@ class StoreBase:
         def decorator(func: Callable):
             def wrapper(self, *func_args, **func_kwargs):
                 data = func(self, *func_args, **func_kwargs)
-                identifier = tuple(func_kwargs[arg] if arg in func_kwargs else func_args[idx]
-                                   for idx, arg in enumerate(args))
-                identifier = identifier[0] if len(identifier) == 1 else identifier
+                identifier = args[0] if len(args) == 1 else args
 
                 if keys:
                     data = {key: data[idx] for idx, key in enumerate(keys)}

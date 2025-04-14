@@ -1,36 +1,106 @@
 import time
-from enum import Enum
-from typing import Dict
-
-from .common import Singleton
+import functools
 
 
-class Timer(metaclass=Singleton):
-    class Unit(Enum):
-        seconds = 1e1
-        milliseconds = 1e3
-        microseconds = 1e6
-        nanoseconds = 1e9
-
+class Benchmark:
     def __init__(self):
-        self.times: Dict[str, float] = {}
+        self.times = {}
+        self.active_timers = {}
 
-    def start(self, name: str, exclude_overhead = True):
-        self.times[name] = time.time_ns() - (self.overhead * exclude_overhead)
+    def track(self, name):
+        def decorator(func):
+            def wrapper(*args, **kwargs):
+                start = time.perf_counter()
+                result = func(*args, **kwargs)
+                end = time.perf_counter()
+                delta = end - start
+                if name in self.times:
+                    self.times[name]['total'] += delta
+                    self.times[name]['count'] += 1
+                else:
+                    self.times[name] = {'total': delta, 'count': 1}
+                return result
+            return wrapper
+        return decorator
 
-    def stop(self, name: str, exclude_overhead = True):
-        self.times[name] = time.time_ns() - self.times[name] - (self.overhead * exclude_overhead)
-
-    def print(self, unit: Unit, places: int = 4, n: int = 1):
-        if n > 1:
-            for name, clock_time in self.times.items():
-                t = f"{clock_time * unit.value / n:.{places}f} {unit.name}"
-                print(f"{name.capitalize()} time: {t}{' * ' + str(n) + ' items' if n > 1 else ''}.")
+    def record(self, name):
+        """
+        Start or stop timing a specific section of code.
+        """
+        if name not in self.active_timers:
+            # Start timing the section
+            self.active_timers[name] = time.perf_counter()
         else:
-            for name, clock_time in self.times.items():
-                t = f"{clock_time * unit.value:.{places}f} {unit.name}"
-                print(f"{name.capitalize()} time: {t}.")
+            # Stop timing the section and record the elapsed time
+            start_time = self.active_timers.pop(name)
+            elapsed_time = time.perf_counter() - start_time
+            if name in self.times:
+                self.times[name]['total'] += elapsed_time
+                self.times[name]['count'] += 1
+            else:
+                self.times[name] = {'total': elapsed_time, 'count': 1}
 
-    @property
-    def overhead(self):
-        return time.time_ns() - time.time_ns()
+    def report(self):
+        for name, info in self.times.items():
+            avg = info['total'] / info['count']
+            print(f"{name:<15} | avg: {avg:.6f}s | calls: {info['count']} | total: {info['total']:.6f}s")
+
+    @staticmethod
+    def timeit(func):
+        """
+        A decorator that benchmarks the execution time of a function.
+        """
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            result = func(*args, **kwargs)
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            print(f"Benchmark: {func.__name__} executed in {elapsed_time:.6f} seconds")
+            return result
+
+        return wrapper
+
+    @staticmethod
+    def repeat(n: int):
+        """
+        A decorator that runs a function `n` times and prints the average execution time.
+        """
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                total_time = 0
+                result = None
+                for _ in range(n):
+                    start_time = time.time()
+                    result = func(*args, **kwargs)
+                    end_time = time.time()
+                    total_time += (end_time - start_time)
+                avg_time = total_time / n
+                print(f"Benchmark: {func.__name__} executed {n} times, "
+                      f"average time: {avg_time:.6f} seconds")
+                return result
+
+            return wrapper
+
+        return decorator
+
+    @staticmethod
+    def profile_memory(func):
+        """
+        A decorator that prints memory usage for a function execution.
+        """
+        try:
+            from memory_profiler import memory_usage
+        except ImportError:
+            raise ImportError("memory_profiler module is required for memory profiling.")
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            mem_usage = memory_usage((func, args, kwargs), interval=0.1)
+            result = func(*args, **kwargs)
+            print(f"Memory usage for {func.__name__}: {max(mem_usage):.2f} MiB")
+            return result
+
+        return wrapper
