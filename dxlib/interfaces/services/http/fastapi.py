@@ -63,7 +63,7 @@ class FastApiServer(Server, uvicorn.Server):
 
     def register(self, service: Service, root_path="", external_router=None, **kwargs):
         super().register(service, root_path, router=external_router)
-        if hasattr(service, "__router"):
+        if hasattr(service, "router"):
             self.include_router(service.router)
         if external_router:
             self.include_router(external_router)
