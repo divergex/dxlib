@@ -9,5 +9,4 @@ ibapi~=9.81.1.post1
 httpx~=0.28.1
 cloudscraper~=1.2.71
 starlette~=0.45.3
-numba~=0.61.0
 statsmodels~=0.14.4

@@ -1,12 +1,10 @@
 import numpy as np
-import numba as nb
 import pandas as pd
 
 from dxlib import Signal
 from ..signal_generator import SignalGenerator
 
 
-@nb.njit
 def fast_rsi(values: np.ndarray, window: int):
     rsi = np.full(values.shape, np.nan, dtype=np.float64)
     for col in range(values.shape[1]):
