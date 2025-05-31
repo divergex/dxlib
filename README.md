@@ -1,5 +1,5 @@
 <div style="margin-top: 16px; display: flex; align-items: center;">
-    <img src="https://github.com/divergex/dxlib/blob/main/dxlib.png" alt="image" width="64" style="margin-right: 10px;" />
+    <img src="dxlib.png" alt="image" width="64" style="margin-right: 10px;" />
     <h1 style="margin: 0;">dxlib - A Quantitative Finance Library</h1>
 </div>
 

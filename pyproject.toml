@@ -33,11 +33,10 @@ content-type = "text/markdown"
 version_scheme = "guess-next-dev"
 local_scheme = "no-local-version"
 
-[tool.poetry.requires-plugins]
-poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
-
 [tool.poetry]
 version = "0.0.0"
+[tool.poetry.requires-plugins]
+poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
 
 [tool.poetry-dynamic-versioning]
 enable = true
