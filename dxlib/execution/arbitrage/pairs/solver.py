@@ -24,15 +24,16 @@ def build_rate_matrix(quotes: pd.DataFrame) -> pd.DataFrame:
     return rate_matrix
 
 
-def find_arbitrage_paths(rate_matrix: pd.DataFrame, threshold=1.0001):
+def find_arbitrage_paths(rate_matrix: pd.DataFrame, threshold=1.01):
     instruments = rate_matrix.index
     G = nx.DiGraph()
 
     for i in instruments:
         for j in instruments:
-            if pd.notna(rate_matrix.loc[i, j]) and rate_matrix.loc[i, j] > 0:
-                weight = -np.log(rate_matrix.loc[i, j])
-                G.add_edge(i, j, weight=weight, rate=rate_matrix.loc[i, j])
+            rate = rate_matrix.loc[i, j]
+            if pd.notna(rate) and rate > 0:
+                weight = -np.log(rate)
+                G.add_edge(i, j, weight=weight, rate=rate)
 
     for start in G.nodes:
         try:
@@ -43,11 +44,16 @@ def find_arbitrage_paths(rate_matrix: pd.DataFrame, threshold=1.0001):
                 rate_product = np.prod([
                     G[cycle[i]][cycle[i+1]]['rate'] for i in range(len(cycle)-1)
                 ])
-                return {
-                    "cycle": cycle,
-                    "rate_product": rate_product,
-                    "position": {f"{cycle[i]}/{cycle[i+1]}": +1 for i in range(len(cycle)-1)}
-                }
+                if rate_product > threshold:
+                    return {
+                        "cycle": cycle,
+                        "rate_product": rate_product,
+                        "position": {
+                            f"{cycle[i]}/{cycle[i+1]}": +1
+                            for i in range(len(cycle)-1)
+                        }
+                    }
+
     return {"cycle": None, "rate_product": None, "position": {}}
 
 

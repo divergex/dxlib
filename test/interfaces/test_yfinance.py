@@ -2,10 +2,18 @@ import time
 import unittest
 from datetime import datetime
 
-
+from dxlib.execution.arbitrage.pairs.solver import generalized_arbitrage_signal
 from dxlib.interfaces import MarketInterface
 from dxlib.interfaces.external import yfinance
 
+def convert_symbol(symbol):
+    if '=' in symbol:
+        base = symbol.replace('=X', '')
+        if len(base) == 6:
+            return f"{base[:3]}/{base[3:]}"
+        else:
+            return f"USD/{base}"
+    return symbol
 
 class TestYFinance(unittest.TestCase):
     def setUp(self):
@@ -24,9 +32,12 @@ class TestYFinance(unittest.TestCase):
         print(history)
 
     def test_quote(self):
-        symbol = ["EURUSD=X", "BRL=X", "BRLEUR=X"]
-        wtf = self.api.quote(symbol)
-        print(wtf[["bid", "ask"]])
+        symbol = ["EURUSD=X", "BRL=X", "EURBRL=X"]
+        quotes = self.api.quote(symbol)
+        quotes = quotes[["bid", "ask"]].reset_index(level='timestamp')
+        quotes.index = quotes.index.map(convert_symbol)
+        print(quotes)
+        print(generalized_arbitrage_signal(quotes))
 
 if __name__ == '__main__':
     unittest.main()
