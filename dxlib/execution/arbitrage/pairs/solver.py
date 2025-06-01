@@ -4,19 +4,19 @@ import networkx as nx
 
 
 def build_rate_matrix(quotes: pd.DataFrame) -> pd.DataFrame:
-    currencies = set()
+    instruments = set()
     data = {}
 
     for pair in quotes.index:
         base, quote = pair.split("/")
-        currencies.update([base, quote])
+        instruments.update([base, quote])
         bid = quotes.loc[pair, "bid"]
         ask = quotes.loc[pair, "ask"]
         data[(base, quote)] = bid
         data[(quote, base)] = 1 / ask if ask > 0 else np.nan
 
-    currencies = sorted(currencies)
-    rate_matrix = pd.DataFrame(np.nan, index=currencies, columns=currencies)
+    instruments = sorted(instruments)
+    rate_matrix = pd.DataFrame(np.nan, index=instruments, columns=instruments)
 
     for (i, j), rate in data.items():
         rate_matrix.loc[i, j] = rate
@@ -25,11 +25,11 @@ def build_rate_matrix(quotes: pd.DataFrame) -> pd.DataFrame:
 
 
 def find_arbitrage_paths(rate_matrix: pd.DataFrame, threshold=1.0001):
-    currencies = rate_matrix.index
+    instruments = rate_matrix.index
     G = nx.DiGraph()
 
-    for i in currencies:
-        for j in currencies:
+    for i in instruments:
+        for j in instruments:
             if pd.notna(rate_matrix.loc[i, j]) and rate_matrix.loc[i, j] > 0:
                 weight = -np.log(rate_matrix.loc[i, j])
                 G.add_edge(i, j, weight=weight, rate=rate_matrix.loc[i, j])
@@ -62,17 +62,13 @@ def find_negative_cycle(G, start):
 
         for neighbor in G.successors(node):
             if neighbor in path and neighbor != path[0]:
-                continue  # don't revisit non-start nodes
+                continue
             weight = G[node][neighbor]['weight']
             stack.append((neighbor, path + [neighbor], log_sum + weight))
 
     return None
 
 def generalized_arbitrage_signal(quotes: pd.DataFrame) -> dict:
-    """
-    Main entrypoint. Receives quotes (bid/ask) for instruments like EUR/USD.
-    Returns arbitrage signal with path and trade suggestion.
-    """
     rate_matrix = build_rate_matrix(quotes)
     result = find_arbitrage_paths(rate_matrix)
     return result

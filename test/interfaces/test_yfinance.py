@@ -9,10 +9,11 @@ from dxlib.interfaces.external import yfinance
 
 class TestYFinance(unittest.TestCase):
     def setUp(self):
-        self.api: MarketInterface = yfinance.YFinance()
+        self.api: MarketInterface = yfinance.YFinance("d=AQABBKAePWgCEKDPPXmKO5K9lLem9_ddGqcFEgEBAQFwPmhHaB6kxyMA_eMCAA&S=AQAAAlfJsDQw5RqBNL49p1OV1Eg")
+        self.api.start()
 
     def tearDown(self):
-        time.sleep(1)
+        self.api.stop()
 
     def test_historical(self):
         symbols = ["EURUSD=X"]
@@ -22,6 +23,10 @@ class TestYFinance(unittest.TestCase):
                                       "1d")
         print(history)
 
+    def test_quote(self):
+        symbol = ["EURUSD=X", "BRL=X", "BRLEUR=X"]
+        wtf = self.api.quote(symbol)
+        print(wtf[["bid", "ask"]])
 
 if __name__ == '__main__':
     unittest.main()

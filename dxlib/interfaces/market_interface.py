@@ -1,11 +1,19 @@
 from datetime import datetime
 
+import pandas as pd
+
 from dxlib.history import History, HistorySchema
 from .interface import Interface
 
 
 class MarketInterface(Interface):
-    def quote(self) -> float:
+    def start(self):
+        raise NotImplementedError
+
+    def stop(self):
+        raise NotImplementedError
+
+    def quote(self, symbols: list[str]) -> float | pd.DataFrame:
         """
         Get the current price of the security.
         """

@@ -10,3 +10,4 @@ httpx~=0.28.1
 cloudscraper~=1.2.71
 starlette~=0.45.3
 statsmodels~=0.14.4
+networkx~=3.4.2
