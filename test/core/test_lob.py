@@ -154,7 +154,7 @@ class TestLOB(unittest.TestCase):
         self.lob.send_order(Order(uuid=4, side='bid', price=100, quantity=10))
 
     def test_send_crossing_orders(self):
-        """Test sending orders that cross the spread."""
+        """Test sending market that cross the spread."""
         # Send a bid order
         self.lob.send_order(Order(uuid=1, side='bid', price=100, quantity=10))
         self.lob.send_order(Order(uuid=2, side='ask', price=101, quantity=10))

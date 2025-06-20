@@ -8,9 +8,12 @@ from dxlib.interfaces import MarketInterface
 
 
 class MockMarket(MarketInterface):
+    def securities(self):
+        return ["AAPL", "MSFT", "PETR4.SA"]
+
     def historical(
             self,
-            symbols: list[str] = None,
+            symbols: list[str],
             start: datetime = datetime.datetime(2021, 1, 1),
             end: datetime = datetime.datetime(2021, 1, 31),
             interval: str = "1d",
@@ -18,19 +21,19 @@ class MockMarket(MarketInterface):
             random_seed: int = None
     ) -> History:
         columns = ["open", "high", "low", "close", "volume"]
-        index = pd.date_range(start=start, end=end, periods=n)
+        date = pd.date_range(start=start, end=end, periods=n)
 
-        data = pd.DataFrame(
-            index=index,
-            columns=columns,
-        )
+        index = pd.MultiIndex.from_product([symbols, date], names=["security", "date"])
+
+        data = pd.DataFrame(index=index, columns=columns)
+
         data.index.name = "date"
 
         if random_seed is not None:
             np.random.seed(random_seed)
 
         for column in columns:
-            data[column] = np.random.rand(n)
+            data[column] = np.random.rand(n * len(symbols))
 
         return History(
             history_schema=self.history_schema,
@@ -40,6 +43,6 @@ class MockMarket(MarketInterface):
     @property
     def history_schema(self):
         return HistorySchema(
-            index={"date": pd.Timestamp},
+            index={"date": pd.Timestamp, "security": str},
             columns={"open": float, "high": float, "low": float, "close": float, "volume": float}
         )

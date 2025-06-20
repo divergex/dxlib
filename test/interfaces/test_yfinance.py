@@ -2,7 +2,7 @@ import time
 import unittest
 from datetime import datetime
 
-from dxlib.execution.arbitrage.pairs.solver import generalized_arbitrage_signal
+from dxlib.strategy.arbitrage.pairs.solver import generalized_arbitrage_signal
 from dxlib.interfaces import MarketInterface
 from dxlib.interfaces.external import yfinance
 

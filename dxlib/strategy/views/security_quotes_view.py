@@ -1,5 +1,5 @@
 from dxlib import History
-from dxlib.execution import HistoryView
+from dxlib.strategy import HistoryView
 
 
 class SecurityQuotes(HistoryView):

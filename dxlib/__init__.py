@@ -6,7 +6,7 @@ from .history import *
 from .core import *
 from .benchmark import *
 from .storage import *
-from .execution import *
+from .strategy import *
 
 
 __all__ = [

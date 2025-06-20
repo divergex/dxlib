@@ -152,6 +152,7 @@ class Cache:
             return False
         with contextlib.suppress(FileNotFoundError):
             return object_type.cache_exists(storage_path, key)
+        return False
 
     # region Manipulation
 
@@ -187,7 +188,8 @@ class Cache:
         data.store(cache_path, key)
 
     # Cache a function call given its arguments, if the cache does not exist, else load it
-    def _default_hash_func(self, *args, **kwargs):
+    @staticmethod
+    def _default_hash_func(*args, **kwargs):
         """
         Default hash function to generate a unique key for the cache.
 
@@ -201,7 +203,7 @@ class Cache:
         try:
             return json.dumps(args, default=RegistryBase.json_serializer)
         except TypeError:
-            pass
+            return None
 
     def cached(self,
                storage: str,

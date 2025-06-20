@@ -1,7 +1,7 @@
 import datetime
 
 from dxlib import Executor, History, Cache
-import dxlib.execution.signal as ss
+import dxlib.strategy.signal as ss
 
 from dxlib.interfaces.external.yfinance.yfinance import YFinance
 
