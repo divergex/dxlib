@@ -1,15 +1,13 @@
 from abc import ABC
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import List, Set, Dict, Tuple, Type
-import json
+from typing import Set, Dict
 
 from .service_registry import ServiceRegistry
-from dxlib.storage import Serializable, RegistryBase, T
 
 
 @dataclass
-class ServiceData(Serializable, metaclass=RegistryBase):
+class ServiceData:
     """
     For internal data representation, such as endpoints available, tags matching the service's functionality, origin,
     and other relevant information to reference and identifty services.
@@ -29,7 +27,8 @@ class ServiceData(Serializable, metaclass=RegistryBase):
             "tags": self.tags
         }
 
-    def from_dict(cls: Type[T], data: dict) -> T:
+    @classmethod
+    def from_dict(cls, data: dict):
         return cls(
             service_id=data["service_id"],
             name=data["name"],

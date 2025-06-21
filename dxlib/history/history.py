@@ -5,11 +5,11 @@ from typing import Dict, List, Union
 import numpy as np
 import pandas as pd
 
-from dxlib.storage import Serializable, RegistryBase
+from dxlib.data import Serializable, RegistryBase
 from .history_schema import HistorySchema
 
 
-class History(Serializable, metaclass=RegistryBase):
+class History:
     """
     A history is a term used to describe a collection of data points.
 
@@ -19,7 +19,6 @@ class History(Serializable, metaclass=RegistryBase):
     The main purpose of a history is to provide common methods to manipulate and analyze the data, as well as context.
     This is useful for easily storing, retrieving, backtesting and networking data.
     """
-
     def __init__(self,
                  history_schema: HistorySchema | dict = None,
                  data: pd.DataFrame | dict | list = None):
@@ -157,6 +156,7 @@ class History(Serializable, metaclass=RegistryBase):
     def add(self, other):
         if isinstance(other, pd.DataFrame):
             return self.data.add(other)
+        return None
 
     def extend(self, other: "History") -> "History":
         """
@@ -355,17 +355,17 @@ class History(Serializable, metaclass=RegistryBase):
 
     # region Serializable Properties
 
-    def to_dict(self):
-        return {
-            "history_schema": self.history_schema.to_dict(),
-            "data": self.data.to_dict(orient="tight")
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict):
-        history_schema = data.get("history_schema", None)
-        data = data.get("data", pd.DataFrame())
-        return cls(history_schema=history_schema, data=data)
+    # def to_dict(self):
+    #     return {
+    #         "history_schema": self.history_schema.to_dict(),
+    #         "data": self.data.to_dict(orient="tight")
+    #     }
+    #
+    # @classmethod
+    # def from_dict(cls, data: dict):
+    #     history_schema = data.get("history_schema", None)
+    #     data = data.get("data", pd.DataFrame())
+    #     return cls(history_schema=history_schema, data=data)
 
     def copy(self):
         return History(history_schema=self.history_schema, data=self.data.copy())

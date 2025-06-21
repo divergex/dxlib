@@ -1,8 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
 
-from dxlib.storage import RegistryBase
-
 
 class AssetClass(Enum):
     STOCK = "stock"
@@ -14,7 +12,7 @@ class AssetClass(Enum):
     CRYPTO = "crypto"
 
 
-class Security(metaclass=RegistryBase):
+class Security:
     def __init__(self, symbol: str, name: str = None, asset_class: AssetClass = None):
         self.symbol = symbol
         self.name = name

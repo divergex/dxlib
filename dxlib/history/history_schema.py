@@ -2,13 +2,8 @@ import json
 import os
 from typing import Dict, Type, List
 
-import pandas as pd
-from attr import dataclass
 
-from dxlib.storage import Serializable, RegistryBase
-
-
-class HistorySchema(Serializable, metaclass=RegistryBase):
+class HistorySchema:
     """
     A schema is the structure of a data set.
     It contains the index names mapped to their respective types and levels,
@@ -57,18 +52,16 @@ class HistorySchema(Serializable, metaclass=RegistryBase):
 
     @classmethod
     def from_dict(cls, data: dict) -> "HistorySchema":
-        return cls(
-            index={key: cls.REGISTRY.get(type_) for key, type_ in data["index"].items()},
-            columns={key: cls.REGISTRY.get(type_) for key, type_ in data["columns"].items()}
-        )
+        return cls(**data)
 
-    @classmethod
-    def from_df(cls, df: pd.DataFrame) -> "HistorySchema":
-        return cls(
-            index={name: type_ for name, type_ in
-                   zip(df.index.names, df.index.dtypes if isinstance(df.index, pd.MultiIndex) else [df.index.dtype])},
-            columns={name: type_ for name, type_ in zip(df.columns, df.dtypes)}
-        )
+    #
+    # @classmethod
+    # def from_df(cls, df: pd.DataFrame) -> "HistorySchema":
+    #     return cls(
+    #         index={name: type_ for name, type_ in
+    #                zip(df.index.names, df.index.dtypes if isinstance(df.index, pd.MultiIndex) else [df.index.dtype])},
+    #         columns={name: type_ for name, type_ in zip(df.columns, df.dtypes)}
+    #     )
 
     def store(self, storage_path, key):
         try:
