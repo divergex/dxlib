@@ -1,8 +1,9 @@
 import datetime
+
 import httpx
 import pandas as pd
 
-from typing import Dict, Any, Union, List
+from typing import Dict, Any, List
 from dxlib.interfaces import market_interface
 from dxlib.history import History, HistorySchema
 from dxlib.core import Security
@@ -112,7 +113,7 @@ class YFinance(market_interface.MarketInterface):
                 'open': float,
                 'high': float,
                 'low': float,
-                'volume': float
+                'volume': int
             }
         )
 

@@ -3,10 +3,9 @@ from typing import Dict, Type, Optional, ClassVar
 import pandas as pd
 from pydantic import Field, BaseModel
 
-from dxlib import History
-from dxlib.history import HistorySchema
+from dxlib import History, HistorySchema
 
-from dxlib.data import Serializable, TypeRegistry as Types
+from ..serializable import Serializable
 
 
 class HistorySchemaDto(BaseModel, Serializable[HistorySchema]):

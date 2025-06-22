@@ -21,7 +21,8 @@ class Executor:
 
         for observation in observer:
             history.concat(observation)
+            res = self.strategy.execute(observation, history, history_view)
             result.concat(
-                self.strategy.execute(observation, history, history_view)
+                res
             )
         return result

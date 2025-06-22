@@ -4,26 +4,10 @@ from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
-import pandas.api.types as ptypes
 
+from dxlib.types import TypeRegistry
 from .history_schema import HistorySchema
-from dxlib.data import TypeRegistry
-import numbers
-
-
-type_validators = {
-    int:     lambda s: ptypes.is_integer_dtype(s),
-    float:   lambda s: ptypes.is_float_dtype(s),
-    str:     lambda s: ptypes.is_string_dtype(s),
-    bool:    lambda s: ptypes.is_bool_dtype(s),
-    numbers.Number: lambda s: ptypes.is_numeric_dtype(s),
-    pd.Timestamp: lambda s: ptypes.is_datetime64_any_dtype(s),
-    pd.DatetimeTZDtype: lambda s: ptypes.is_datetime64_any_dtype(s),
-}
-
-def column_validate(series, expected_type):
-    validator = type_validators.get(expected_type)
-    return (validator and validator(series)) or series.apply(lambda x: isinstance(x, expected_type)).all()
+from .dtype_validation import validate_series_dtype
 
 
 class History(TypeRegistry):
@@ -59,27 +43,35 @@ class History(TypeRegistry):
         self.data: pd.DataFrame | None = None
 
         if isinstance(history_schema, dict):
-            self.history_schema = HistorySchema.from_dict(history_schema)
+            self.history_schema = HistorySchema(**history_schema)
 
         if isinstance(data, pd.DataFrame):
-            self.data: pd.DataFrame = data
+            data: pd.DataFrame = data
         elif isinstance(data, dict):
-            self.data: pd.DataFrame = pd.DataFrame.from_dict(data, orient="tight")
+            data: pd.DataFrame = pd.DataFrame.from_dict(data, orient="tight")
         elif isinstance(data, list):
-            self.data: pd.DataFrame = pd.DataFrame(data)
+            data: pd.DataFrame = pd.DataFrame(data)
+        elif data is None:
+            self.data: pd.DataFrame = pd.DataFrame()
+            return
+        else:
+            raise TypeError("Invalid data type.")
 
         # test if self.data index have correct names
-        if self.history_schema is not None and self.data is not None:
-            if self.history_schema.index and self.history_schema.index.keys() != set(self.data.index.names):
+        self.data = self.validate(data)
+
+    def validate(self, data):
+        if self.history_schema is not None and data is not None:
+            if self.history_schema.index and self.history_schema.index.keys() != set(data.index.names):
                 raise ValueError("The index names do not match the schema.")
 
         for col, expected_type in self.history_schema.columns.items():
-            if col not in self.data.columns:
+            if col not in data.columns:
                 raise ValueError(f"The column name '{col}' is not present in the data.")
-            is_valid = column_validate(self.data[col], expected_type)
+            is_valid = validate_series_dtype(data[col], expected_type) if expected_type is not None else True
             if not is_valid:
                 raise ValueError(f"The column name '{col}' is not of the expected schema type.")
-
+        return data
 
     # region Abstract Properties
 
@@ -171,7 +163,9 @@ class History(TypeRegistry):
         Returns:
             History: This history, now with the data of the other history.
         """
-        if self.history_schema != other.history_schema:
+        if self.history_schema is None:
+            self.history_schema = other.history_schema.copy()
+        elif self.history_schema != other.history_schema:
             raise ValueError("The schemas of the histories do not match.")
 
         self.data = pd.concat([self.data, other.data])
@@ -198,9 +192,9 @@ class History(TypeRegistry):
 
         self.history_schema.columns.update(other.history_schema.columns)
 
-        self.data = pd.concat([self.data, other.data], axis=1)
+        self.data = pd.concat([self.data, other.data], axis=0)
         self.data = self.data.groupby(level=self.data.index.names).first()
-        self.data = self.data.T.groupby(self.data.columns).first().T
+        # self.data.T.groupby(self.data.columns).first().T
         return self
 
     def loc(self, index: List[Union[tuple, str]] = None, columns: List[str] | str = None) -> "History":
@@ -378,52 +372,8 @@ class History(TypeRegistry):
 
     # region Properties
 
-    # region Serializable Properties
-
-    # def to_dict(self):
-    #     return {
-    #         "history_schema": self.history_schema.to_dict(),
-    #         "data": self.data.to_dict(orient="tight")
-    #     }
-    #
-    # @classmethod
-    # def from_dict(cls, data: dict):
-    #     history_schema = data.get("history_schema", None)
-    #     data = data.get("data", pd.DataFrame())
-    #     return cls(history_schema=history_schema, data=data)
-
     def copy(self):
         return History(history_schema=self.history_schema, data=self.data.copy())
-
-    def store(self, storage_path, key):
-        try:
-            os.makedirs(storage_path + "/history")
-        except FileExistsError:
-            pass
-
-        history_storage = storage_path + "/history"
-        self.data.to_hdf(history_storage + f"/data.h5", key=key, mode='w', format='table')
-        self.history_schema.store(history_storage + f"/history_schema", key)
-
-    @classmethod
-    def load(cls, storage_path, key):
-        history_storage = storage_path + "/history"
-        data = pd.read_hdf(history_storage + "/data.h5", key, mode='r')
-        history_schema = HistorySchema.load(history_storage + "/history_schema", key)
-        return cls(history_schema=history_schema, data=data)
-
-    @classmethod
-    def cache_exists(cls, cache_path, key):
-        file_exists = os.path.exists(cache_path + f"/history/data.h5") and os.path.exists(
-            cache_path + f"/history/history_schema/")
-        schema_exists = os.path.exists(cache_path + f"/history/history_schema/{key}.json")
-        try:
-            with pd.HDFStore(cache_path + "/history/data.h5") as store:
-                data_exists = f"/{key}" in store.keys()
-        except (FileNotFoundError, OSError, KeyError):
-            return False
-
-        return file_exists and schema_exists and data_exists
 
     # endregion
 

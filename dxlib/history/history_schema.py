@@ -1,8 +1,6 @@
-import json
-import os
 from typing import Dict, Type, List
 
-from dxlib.data import TypeRegistry
+from dxlib.types import TypeRegistry
 
 class HistorySchema(TypeRegistry):
     """
@@ -40,55 +38,6 @@ class HistorySchema(TypeRegistry):
 
     def in_column(self, name: str) -> bool:
         return name in self.columns
-
-    # endregion
-
-    # region Serialization
-
-    def to_dict(self) -> dict:
-        return {
-            "index": {name: type_.__name__ for name, type_ in self.index.items()},
-            "columns": {name: type_.__name__ for name, type_ in self.columns.items()}
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "HistorySchema":
-        return cls(**data)
-
-    #
-    # @classmethod
-    # def from_df(cls, df: pd.DataFrame) -> "HistorySchema":
-    #     return cls(
-    #         index={name: type_ for name, type_ in
-    #                zip(df.index.names, df.index.dtypes if isinstance(df.index, pd.MultiIndex) else [df.index.dtype])},
-    #         columns={name: type_ for name, type_ in zip(df.columns, df.dtypes)}
-    #     )
-
-    def store(self, storage_path, key):
-        try:
-            os.makedirs(storage_path)
-        except FileExistsError:
-            pass
-
-        schema_data = {
-            'index': {k: v.__name__ for k, v in self.index.items()},
-            'columns': {k: v.__name__ for k, v in self.columns.items()}
-        }
-
-        with open(f'{storage_path}/{key}.json', 'wb') as file:
-            json_data = json.dumps(schema_data)
-            file.write(json_data.encode('utf-8'))
-
-    @classmethod
-    def load(cls, cache_path, key):
-        # Load from JSON file
-        with open(f'{cache_path}/{key}.json', 'r') as json_file:
-            schema_data = json.load(json_file)
-
-        index = {key: cls.REGISTRY.get(type_) for key, type_ in schema_data['index'].items()}
-        columns = {key: cls.REGISTRY.get(type_) for key, type_ in schema_data['columns'].items()}
-
-        return cls(index=index, columns=columns)
 
     # endregion
 

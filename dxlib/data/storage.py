@@ -6,7 +6,8 @@ from typing import TypeVar, Type, Any
 import h5py
 import pandas as pd
 
-from dxlib.data import Serializable
+from .registry import RegistryBase
+from .serializable import Serializable
 
 
 class Storage:
@@ -60,10 +61,12 @@ class Storage:
         cache_path = self._path(storage)
 
         with h5py.File(cache_path, 'r') as f:
-            data = f.get(key)[()].decode('utf-8')
-            if obj_type:
-                return obj_type.model_validate_json(data)
-            return data
+            obj_data = f.get(key)
+            if not obj_data:
+                raise KeyError(f"Key {key} not found in {cache_path}")
+            data = obj_data[()].decode('utf-8')
+
+            return obj_type.model_validate_json(data) if obj_type is not None else data
 
     def store(self, storage: str, key: str, data: Serializable, overwrite: bool = False):
         """
@@ -104,19 +107,20 @@ class Storage:
     def cached(self,
                storage: str,
                func: callable,
-               expected_type: Type[Serializable],
+               expected_type: Any,
                *args,
                hash_function: callable = None,
                **kwargs) -> Any:
-        method = func.__qualname__
+        model = RegistryBase.get_registry(expected_type)
 
-        key = hash_function(method, *args, **kwargs) if hash_function else self._hash(method, *args, **kwargs)
+        func_name = func.__qualname__
+        key = hash_function(func_name, *args, **kwargs) if hash_function else self._hash(func_name, *args, **kwargs)
 
         try:
-            return self.load(storage, key, expected_type)
+            return self.load(storage, key, model).to_domain()
         except (KeyError, FileNotFoundError):
-            data = func(*args, **kwargs)
-            self.store(storage, key, data, overwrite=True)  # None.
-            return data
+            obj = func(*args, **kwargs)
+            self.store(storage, key, model.from_domain(obj), overwrite=True)  # None.
+            return obj
 
     # endregion
