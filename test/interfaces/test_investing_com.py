@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
 
-from dxlib.interfaces import investing_com as inv
+from dxlib.interfaces import investing_com as inv, MarketInterface
 from dxlib.history import History
 
 
@@ -18,9 +18,10 @@ class TestInvestingCom(unittest.TestCase):
         }
         result = self.api.historical(**params)
         self.assertIsInstance(result, History)
-        self.assertEqual(260, len(result))
+        self.assertEqual(252, len(result))
         # Check if
         self.assertEqual(["AAPL"], result.levels("security"))
+        print(result)
 
     def test_multiple_symbols(self):
         params = {

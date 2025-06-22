@@ -34,7 +34,7 @@ def get_cboe_book(symbol: str):
     return response.json()
 
 
-# format = {'reload': 5500, 'data': {'symbol': 'MSFT', 'timestamp': '20:00:39 US/Eastern', 'company': 'MICROSOFT CORP COM', 'volume': 830843, 'orders': 1899774, 'asks': [], 'bids': [], 'tick_type': '', 'prev': 418.79, 'high': 429.05, 'low': 416.75, 'status': 'Closed', 'trades': [['19:59:11', 1, 426.39], ['19:19:55', 1, 426.28], ['18:55:05', 5, 426.0], ['18:54:30', 50, 426.08], ['18:46:21', 1, 426.2], ['18:46:21', 13, 426.17], ['18:30:17', 10, 425.75], ['18:14:54', 23, 426.2], ['18:14:54', 2, 426.2], ['18:14:54', 25, 426.2]], 'hrname': ''}, 'success': True, 'statusText': '', 'statusCode': '200', 'status': '200: '}
+# format = {'reload': 5500, 'data': {'symbol': 'MSFT', 'timestamp': '20:00:39 US/Eastern', 'company': 'MICROSOFT CORP COM', 'volume': 830843, 'market': 1899774, 'asks': [], 'bids': [], 'tick_type': '', 'prev': 418.79, 'high': 429.05, 'low': 416.75, 'status': 'Closed', 'trades': [['19:59:11', 1, 426.39], ['19:19:55', 1, 426.28], ['18:55:05', 5, 426.0], ['18:54:30', 50, 426.08], ['18:46:21', 1, 426.2], ['18:46:21', 13, 426.17], ['18:30:17', 10, 425.75], ['18:14:54', 23, 426.2], ['18:14:54', 2, 426.2], ['18:14:54', 25, 426.2]], 'hrname': ''}, 'success': True, 'statusText': '', 'statusCode': '200', 'status': '200: '}
 
 
 def format_cboe_book(data = None) -> OrderBook:

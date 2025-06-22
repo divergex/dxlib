@@ -13,8 +13,9 @@ class SignalStrategy(Strategy):
     def execute(self,
                 observation: History,
                 history: History,
-                history_view: Type[HistoryView],
+                history_view: Type[HistoryView] = None,
                 *args, **kwargs) -> History:
+        assert history_view is not None
         result: History = history_view.apply(history, self.signal.generate)
         return result.loc(index=observation.data.index)
 

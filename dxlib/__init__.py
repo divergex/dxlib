@@ -1,17 +1,14 @@
-from . import interfaces
-from . import storage
 from . import core
+from . import interfaces
 
 from .history import *
 from .core import *
 from .benchmark import *
-from .storage import *
-from .execution import *
+from .strategy import *
 
 
 __all__ = [
     'interfaces',
-    'storage',
     'strategy',
     'core',
     *history.__all__,

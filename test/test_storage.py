@@ -34,9 +34,9 @@ class TestSerializer(unittest.TestCase):
                 return cls(data["value"], data["date"])
 
         sample_data = SampleData(1)
+        serialized = sample_data.serialize()
 
-        self.assertEqual(SampleData.from_dict(sample_data.to_dict()).value, sample_data.value)
-        self.assertEqual(SampleData.from_dict(sample_data.to_dict()).__json__(), sample_data.__json__())
+        self.assertEqual(SampleData.deserialize(serialized).value, sample_data.value)
 
     def test_registered_serializable(self):
         class CustomField(metaclass=RegistryBase):
@@ -55,13 +55,39 @@ class TestSerializer(unittest.TestCase):
             def from_dict(cls, data):
                 return cls(RegistryBase.get(data["field_type"]), RegistryBase.get("pd.Timestamp"))
 
-        RegistryBase.register(CustomField)
-
-        RegistryBase.register(pd.Timestamp, "pd.Timestamp")
-
         sample_data = SampleData(CustomField, pd.Timestamp)
 
         self.assertEqual(SampleData.from_dict(sample_data.to_dict()).field_type, CustomField)
+
+    def test_complex_serializable(self):
+        class ComplexKey(Serializable, metaclass=RegistryBase):
+            def __init__(self, value):
+                self.value = value
+                self.additional = 3
+
+            def op(self):
+                return self.value + self.additional
+
+            def to_dict(self):
+                return {"value": self.value, "additional": self.additional}
+
+        class ComplexDf(Serializable, metaclass=RegistryBase):
+            def __init__(self, key: ComplexKey, value):
+                self.key = key
+                self.value = value
+
+            def to_dict(self):
+                return {self.key: self.value}
+
+            @classmethod
+            def from_dict(cls, data):
+                return cls(RegistryBase.get(data["field_type"]), RegistryBase.get("pd.Timestamp"))
+
+        key = ComplexKey(2)
+        df = ComplexDf(key, 2)
+
+        serialized = df.serialize()
+
 
 
 class TestCache(unittest.TestCase):

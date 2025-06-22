@@ -1,16 +1,27 @@
 import datetime
+
 import httpx
 import pandas as pd
 
-from typing import Dict, Any, Union, List
+from typing import Dict, Any, List
 from dxlib.interfaces import market_interface
 from dxlib.history import History, HistorySchema
 from dxlib.core import Security
 
 
 class YFinance(market_interface.MarketInterface):
-    def __init__(self):
-        self.client = httpx.Client(headers=self.headers)
+    def __init__(self, cookie = None):
+        self.cookie = cookie
+        self.cookies = {
+            "A1": self.cookie,
+            "A3": self.cookie,
+            "A1S": self.cookie,
+        }
+        self._crumb = None
+        self.client = None
+
+    def start(self):
+        self.client = httpx.Client(headers=self.headers, cookies=self.cookies)
 
     @property
     def headers(self) -> Dict[str, str]:
@@ -24,10 +35,61 @@ class YFinance(market_interface.MarketInterface):
 
     @property
     def base_url(self) -> str:
-        return "https://query1.finance.yahoo.com/v8/finance/chart"
+        # quoteSummary/EURUSD=X?modules=price
+        return "https://query1.finance.yahoo.com"
 
-    def _request(self, symbol: str, start: int, end: int, interval: str) -> Dict[str, Any]:
-        url = f"{self.base_url}/{symbol}"
+    def crumb(self):
+        if self._crumb:
+            return self._crumb
+        r = self.client.get("https://query2.finance.yahoo.com/v1/test/getcrumb")
+        r.raise_for_status()
+        self._crumb = r.text.strip()
+        return self._crumb
+
+    def _quote(self, symbols, crumb=None, version="v7"):
+        crumb = crumb or self.crumb()
+        symbols = ",".join(symbols)
+        url = f"{self.base_url}/{version}/finance/quote"
+        params = {
+            "symbols": symbols,
+            "crumb": crumb,
+            "lang": "en-US",
+            "region": "US",
+            "formatted": "false",
+        }
+        r = self.client.get(url, params=params)
+        r.raise_for_status()
+        return r.json()
+
+    def _format_quote(self, response_json):
+        results = response_json.get("quoteResponse", {}).get("result", [])
+        records = []
+        for item in results:
+            timestamp = item.get("regularMarketTime")
+            ts = pd.to_datetime(timestamp, unit="s") if timestamp else pd.NaT
+            symbol = item.get("symbol")
+            bid = item.get("bid")
+            ask = item.get("ask")
+            market_price = item.get("regularMarketPrice")
+            records.append({
+                "timestamp": ts,
+                "symbol": symbol,
+                "bid": bid,
+                "ask": ask,
+                "marketPrice": market_price,
+            })
+
+        df = pd.DataFrame(records)
+        df.set_index(["timestamp", "symbol"], inplace=True)
+        return df
+
+    def quote(self, symbols):
+        assert self.cookie is not None, "This method requires loading cookies with `YFinance(cookie)`."
+        assert self.client, "Start the Api instance first."
+        return self._format_quote(self._quote(symbols))
+
+    def _historical(self, symbol: str, start: int, end: int, interval: str, version="v8") -> Dict[str, Any]:
+        url = f"{self.base_url}/{version}/finance/chart/{symbol}"
         params = {
             "interval": interval,
             "period1": str(start),
@@ -51,7 +113,7 @@ class YFinance(market_interface.MarketInterface):
                 'open': float,
                 'high': float,
                 'low': float,
-                'volume': float
+                'volume': int
             }
         )
 
@@ -86,11 +148,12 @@ class YFinance(market_interface.MarketInterface):
                    end: datetime.datetime,
                    interval: str = '1d'
                    ) -> History:
+        assert self.client, "Start the Api instance first."
         symbols = symbols if isinstance(symbols, list) else [symbols]
         history = History(history_schema=self.history_schema)
 
         for symbol in symbols:
-            response = self._request(
+            response = self._historical(
                 symbol,
                 int(start.timestamp()),
                 int(end.timestamp()),
@@ -99,3 +162,7 @@ class YFinance(market_interface.MarketInterface):
             history.extend(self._format_history(symbol, response))
 
         return history
+
+    def stop(self):
+        self.client.close()
+        self.client = None

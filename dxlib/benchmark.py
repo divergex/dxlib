@@ -48,7 +48,7 @@ class Benchmark:
     @staticmethod
     def timeit(func):
         """
-        A decorator that benchmarks the execution time of a function.
+        A decorator that benchmarks the strategy time of a function.
         """
 
         @functools.wraps(func)
@@ -65,7 +65,7 @@ class Benchmark:
     @staticmethod
     def repeat(n: int):
         """
-        A decorator that runs a function `n` times and prints the average execution time.
+        A decorator that runs a function `n` times and prints the average strategy time.
         """
         def decorator(func):
             @functools.wraps(func)
@@ -89,7 +89,7 @@ class Benchmark:
     @staticmethod
     def profile_memory(func):
         """
-        A decorator that prints memory usage for a function execution.
+        A decorator that prints memory usage for a function strategy.
         """
         try:
             from memory_profiler import memory_usage
