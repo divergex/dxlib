@@ -1,3 +1,4 @@
+from numbers import Number
 import pandas as pd
 
 from dxlib import HistorySchema
@@ -7,11 +8,11 @@ class Mock:
     columns = ["open", "close"]
     stocks = ["AAPL", "MSFT", "GOOG", "AMZN", "FB"]
 
-    @property
-    def schema(self):
+    @classmethod
+    def schema(cls):
         return HistorySchema(
             index={"security": str, "date": pd.Timestamp},
-            columns={"open": float, "close": float},
+            columns={"open": Number, "volume": Number},
         )
 
     tight_data = {
@@ -41,8 +42,8 @@ class Mock:
         "column_names": [""]
     }
 
-    @property
-    def large_data(self):
+    @classmethod
+    def large_data(cls):
         return {
             "index": [
                 ("AAPL", "2021-01-01"),

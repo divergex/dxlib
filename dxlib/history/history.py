@@ -4,12 +4,29 @@ from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
+import pandas.api.types as ptypes
 
-from dxlib.data import Serializable, RegistryBase
 from .history_schema import HistorySchema
+from dxlib.data import TypeRegistry
+import numbers
 
 
-class History:
+type_validators = {
+    int:     lambda s: ptypes.is_integer_dtype(s),
+    float:   lambda s: ptypes.is_float_dtype(s),
+    str:     lambda s: ptypes.is_string_dtype(s),
+    bool:    lambda s: ptypes.is_bool_dtype(s),
+    numbers.Number: lambda s: ptypes.is_numeric_dtype(s),
+    pd.Timestamp: lambda s: ptypes.is_datetime64_any_dtype(s),
+    pd.DatetimeTZDtype: lambda s: ptypes.is_datetime64_any_dtype(s),
+}
+
+def column_validate(series, expected_type):
+    validator = type_validators.get(expected_type)
+    return (validator and validator(series)) or series.apply(lambda x: isinstance(x, expected_type)).all()
+
+
+class History(TypeRegistry):
     """
     A history is a term used to describe a collection of data points.
 
@@ -55,6 +72,14 @@ class History:
         if self.history_schema is not None and self.data is not None:
             if self.history_schema.index and self.history_schema.index.keys() != set(self.data.index.names):
                 raise ValueError("The index names do not match the schema.")
+
+        for col, expected_type in self.history_schema.columns.items():
+            if col not in self.data.columns:
+                raise ValueError(f"The column name '{col}' is not present in the data.")
+            is_valid = column_validate(self.data[col], expected_type)
+            if not is_valid:
+                raise ValueError(f"The column name '{col}' is not of the expected schema type.")
+
 
     # region Abstract Properties
 

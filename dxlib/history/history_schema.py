@@ -2,8 +2,9 @@ import json
 import os
 from typing import Dict, Type, List
 
+from dxlib.data import TypeRegistry
 
-class HistorySchema:
+class HistorySchema(TypeRegistry):
     """
     A schema is the structure of a data set.
     It contains the index names mapped to their respective types and levels,

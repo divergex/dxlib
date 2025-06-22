@@ -1,13 +1,36 @@
-from abc import abstractmethod
-from typing import Type, TypeVar, Generic, ClassVar, Any
+from abc import abstractmethod, ABCMeta
+from datetime import datetime
+from numbers import Number
+from typing import Type, TypeVar, Generic, ClassVar, Any, Dict
 
 import pandas as pd
+from pandas import Timestamp
 
 _REGISTRY = {}
 _SERIALIZERS = {
     pd.DataFrame: lambda df: df.to_dict(orient="tight"),
-    type: lambda value: value.__name__,
+    type: lambda data: str(data),
+    ABCMeta: lambda data: str(data)
 }
+
+_TYPES: Dict[str, Type] = {str(t): t for t in [int, float, str, bool, datetime, Timestamp, Number]}
+_DESERIALIZERS = {
+    pd.DataFrame: lambda data: pd.DataFrame.from_dict(data, orient="tight"),
+    type: lambda data: _TYPES[data],
+}
+
+class TypeRegistry:
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        _TYPES[str(cls)] = cls
+
+    @classmethod
+    def get(cls, name):
+        return _TYPES[name]
+
+    @classmethod
+    def register(cls, obj):
+        _REGISTRY[str(obj)] = obj
 
 class RegistryBase:
     def __init_subclass__(cls, **kwargs):
@@ -25,6 +48,15 @@ class RegistryBase:
             return serializer(value)
         elif t == dict:
             return {cls.serialize(k): cls.serialize(v) for k, v in value.items()}
+        else:
+            return value
+
+    @classmethod
+    def deserialize(cls, value, expected_type):
+        if registry := _REGISTRY.get(expected_type):
+            return registry.model_validate(value)
+        elif deserializer := _DESERIALIZERS.get(expected_type):
+            return deserializer(value)
         else:
             return value
 

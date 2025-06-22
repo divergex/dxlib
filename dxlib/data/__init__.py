@@ -1,2 +1,2 @@
-from .registry import Serializable, RegistryBase
+from .registry import Serializable, RegistryBase, TypeRegistry
 from .storage import Storage

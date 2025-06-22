@@ -1,10 +1,12 @@
 from typing import Dict, Type, Optional, ClassVar
 
+import pandas as pd
 from pydantic import Field, BaseModel
 
 from dxlib import History
-from dxlib.data import Serializable
 from dxlib.history import HistorySchema
+
+from dxlib.data import Serializable, TypeRegistry as Types
 
 
 class HistorySchemaDto(BaseModel, Serializable[HistorySchema]):
@@ -14,7 +16,10 @@ class HistorySchemaDto(BaseModel, Serializable[HistorySchema]):
     columns: Optional[Dict[str, str]] = Field(default=None, description="Dict of column names to types")
 
     def to_domain(self) -> HistorySchema:
-        return HistorySchema(index=self.index, columns=self.columns)
+        return HistorySchema(
+            index={k: self.deserialize(v, type) for k, v in self.index.items()},
+            columns={k: self.deserialize(v, type) for k, v in self.columns.items()},
+        )
 
     @classmethod
     def _from_domain(cls, domain_obj: HistorySchema) -> "HistorySchemaDto":
@@ -30,7 +35,25 @@ class HistoryDto(BaseModel, Serializable[History]):
     history_schema: HistorySchemaDto = Field()
 
     def to_domain(self) -> History:
-        return History(self.data, self.history_schema.to_domain())
+        schema = self.history_schema.to_domain()
+        df = self.deserialize(self.data, pd.DataFrame)
+
+        for col, expected_type in schema.columns.items():
+            df[col] = df[col].apply(lambda x: self.deserialize(x, expected_type))
+
+        if isinstance(df.index, pd.MultiIndex):
+            new_levels = []
+            for level, (name, expected_type) in zip(df.index.levels, schema.index.items()):
+                new_level = [self.deserialize(val, expected_type) for val in level]
+                new_levels.append(pd.Index(new_level, name=name))
+            df.index = df.index.set_levels(new_levels)
+        else:
+            # Single index
+            index_name, expected_type = next(iter(schema.index.items()))
+            new_index = [self.deserialize(val, expected_type) for val in df.index]
+            df.index = pd.Index(new_index, name=index_name)
+
+        return History(schema, df)
 
     @classmethod
     def _from_domain(cls, domain_obj: History) -> "HistoryDto":

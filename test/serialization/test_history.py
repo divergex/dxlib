@@ -18,4 +18,10 @@ class TestHistoryDto(unittest.TestCase):
 
         dto = HistoryDto.from_domain(history)
         print(dto)
-        dto.model_dump_json()
+        json_data = dto.model_dump_json()
+        print(json_data)
+
+        dto = HistoryDto.model_validate_json(json_data)
+        print(dto)
+
+        print(dto.to_domain())
