@@ -18,7 +18,7 @@ _DESERIALIZERS = {
     datetime: lambda data: datetime.fromisoformat(data),
 }
 
-class RegistryBase:
+class Registry:
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         if hasattr(cls, 'domain_cls'):
@@ -54,8 +54,17 @@ class RegistryBase:
         return _REGISTRY
 
     @classmethod
-    def get_registry(cls, domain_cls):
+    def get(cls, domain_cls):
         try:
-            return _REGISTRY[domain_cls.__qualname__]
+            cls_name = domain_cls.__qualname__ if isinstance(domain_cls, type) else domain_cls.__class__.__qualname__
+            return _REGISTRY[cls_name]
         except KeyError:
             raise KeyError(f"Data model for domain_cls {domain_cls} not in registry.")
+
+    @classmethod
+    def from_domain(cls, domain):
+        assert not isinstance(domain, type), "Pass a domain instance instead of its definition."
+        try:
+            return _REGISTRY[domain.__class__.__qualname__].from_domain(domain)
+        except KeyError:
+            raise KeyError(f"Data model for domain {domain} not in registry.")

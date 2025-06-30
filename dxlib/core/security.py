@@ -15,11 +15,11 @@ class AssetClass(Enum):
 
 
 class Security(TypeRegistry):
-    def __init__(self, symbol: str, name: str = None, asset_class: AssetClass = None):
+    def __init__(self, symbol: str, name: str = None, asset_class: AssetClass = None, tick_size = 1):
         self.symbol = symbol
         self.name = name
         self.asset_class = asset_class
-
+        self.tick_size = tick_size
 
     def __str__(self):
         return f"{self.__class__.__name__}({self.symbol})"

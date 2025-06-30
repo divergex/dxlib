@@ -2,6 +2,11 @@ from typing import Dict, Type, List
 
 from dxlib.types import TypeRegistry
 
+
+def rename_keys(d, translations):
+    return {translations.get(k, k): v for k, v in d.items()}
+
+
 class HistorySchema(TypeRegistry):
     """
     A schema is the structure of a data set.
@@ -38,6 +43,32 @@ class HistorySchema(TypeRegistry):
 
     def in_column(self, name: str) -> bool:
         return name in self.columns
+
+    def rename(self, index: Dict[str, str] = None, columns: Dict[str, str] = None) -> "HistorySchema":
+        # rename and return self
+        if index is not None:
+            self.index = rename_keys(self.index, index)
+        if columns is not None:
+            self.columns = rename_keys(self.columns, columns)
+        return self
+
+    def set(self, index: Dict[str, type] = None, columns: Dict[str, type] = None) -> "HistorySchema":
+        index = index or {}
+        columns = columns or {}
+
+        for key, value in index.items():
+            self.index[key] = value
+        for key, value in columns.items():
+            self.columns[key] = value
+        return self
+
+    def add(self, key, value):
+        self.index[key] = value
+        return self
+
+    def remove(self, key):
+        del self.index[key]
+        return self
 
     # endregion
 

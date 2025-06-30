@@ -48,7 +48,10 @@ class History(TypeRegistry):
         if isinstance(data, pd.DataFrame):
             data: pd.DataFrame = data
         elif isinstance(data, dict):
-            data: pd.DataFrame = pd.DataFrame.from_dict(data, orient="tight")
+            try:
+                data: pd.DataFrame = pd.DataFrame.from_dict(data, orient="tight")
+            except KeyError:
+                raise ValueError("Data must be of the pandas format 'tight'.")
         elif isinstance(data, list):
             data: pd.DataFrame = pd.DataFrame(data)
         elif data is None:
@@ -57,7 +60,7 @@ class History(TypeRegistry):
         else:
             raise TypeError("Invalid data type.")
 
-        # test if self.data index have correct names
+        # test if self.data index is in accordance to schema
         self.data = self.validate(data)
 
     def validate(self, data):
@@ -65,12 +68,17 @@ class History(TypeRegistry):
             if self.history_schema.index and self.history_schema.index.keys() != set(data.index.names):
                 raise ValueError("The index names do not match the schema.")
 
+        if self.history_schema.columns.keys() != set(data.columns):
+            raise ValueError("The column names do not match the schema.",
+                             "Expected: " + ", ".join(self.history_schema.columns.keys()),
+                             "Actual: " + ", ".join(data.columns))
+
         for col, expected_type in self.history_schema.columns.items():
-            if col not in data.columns:
-                raise ValueError(f"The column name '{col}' is not present in the data.")
-            is_valid = validate_series_dtype(data[col], expected_type) if expected_type is not None else True
-            if not is_valid:
-                raise ValueError(f"The column name '{col}' is not of the expected schema type.")
+            if expected_type is None:
+                continue
+            if not validate_series_dtype(data[col], expected_type):
+                raise ValueError(f"The column '{col}' is not of the expected type in the schema.")
+
         return data
 
     # region Abstract Properties
@@ -341,12 +349,15 @@ class History(TypeRegistry):
         return History(self.history_schema,
                        func(self.data, other.data if isinstance(other, History) else other, *args, **kwargs))
 
-    def apply(self, func: Dict[str, callable] | callable, *args, **kwargs) -> "History":
+    def apply(self, func: Dict[str | List[str], callable] | callable, *args, **kwargs) -> "History":
         if isinstance(func, dict):
             data = self.data
 
             for idx, f in func.items():
-                data = data.groupby(idx, group_keys=False).apply(f, *args, **kwargs)
+                if len(idx) == 0:
+                    data = f(data, *args, **kwargs)
+                else:
+                    data = data.groupby(level=idx, group_keys=False).apply(f, *args, **kwargs)
 
             if isinstance(data, pd.DataFrame):
                 schema = HistorySchema(
@@ -355,6 +366,7 @@ class History(TypeRegistry):
                 )
             elif isinstance(data, pd.Series):
                 schema = self.history_schema.copy()
+                data = data.to_frame().T
             else:
                 raise ValueError("The function must return a DataFrame or Series.")
 

@@ -1,12 +1,12 @@
 from abc import abstractmethod
 from typing import TypeVar, Generic, ClassVar, Any, Type
 
-from .registry import RegistryBase
+from .registry import Registry
 
 DomainT = TypeVar('DomainT')
 DtoT = TypeVar('DtoT', bound='Serializable')
 
-class Serializable(Generic[DomainT], RegistryBase):
+class Serializable(Generic[DomainT], Registry):
     domain_cls: ClassVar[Any]  # Should be a type of DomainT
 
     @abstractmethod

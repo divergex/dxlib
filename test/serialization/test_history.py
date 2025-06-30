@@ -1,8 +1,8 @@
 import unittest
 
 from dxlib import History
-from dxlib.data.dtos.history_dto import HistoryDto
-from test.mock_data import Mock
+from dxlib.data import Registry
+from test.data import Mock
 
 
 class TestHistoryDto(unittest.TestCase):
@@ -16,12 +16,11 @@ class TestHistoryDto(unittest.TestCase):
         history = History(schema, data)
         print(history)
 
-        dto = HistoryDto.from_domain(history)
+        dto = Registry.from_domain(history)
         print(dto)
         json_data = dto.model_dump_json()
         print(json_data)
 
-        dto = HistoryDto.model_validate_json(json_data)
+        dto = Registry.get(history).model_validate_json(json_data)
         print(dto)
-
         print(dto.to_domain())

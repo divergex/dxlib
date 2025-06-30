@@ -3,7 +3,7 @@ import unittest
 import pandas as pd
 
 from dxlib import History, HistorySchema, Executor, Strategy
-from test.mock_data import Mock
+from test.data import Mock
 
 
 class TestExecutor(unittest.TestCase):

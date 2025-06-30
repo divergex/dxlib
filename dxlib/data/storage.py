@@ -6,7 +6,7 @@ from typing import TypeVar, Type, Any
 import h5py
 import pandas as pd
 
-from .registry import RegistryBase
+from .registry import Registry
 from .serializable import Serializable
 
 
@@ -111,7 +111,7 @@ class Storage:
                *args,
                hash_function: callable = None,
                **kwargs) -> Any:
-        model = RegistryBase.get_registry(expected_type)
+        model = Registry.get(expected_type)
 
         func_name = func.__qualname__
         key = hash_function(func_name, *args, **kwargs) if hash_function else self._hash(func_name, *args, **kwargs)

@@ -1,46 +1,33 @@
 import json
 import unittest
 from datetime import datetime
+from numbers import Number
 
 import pandas as pd
 
 from dxlib import History, HistorySchema
 
-from utils import Mock
+from data import Mock
 
 
 class TestSchema(unittest.TestCase):
     def test_create(self):
-        schema = Mock().schema
+        schema = Mock.schema()
         self.assertEqual({"security": str, "date": pd.Timestamp}, schema.index)
         self.assertEqual({"open": float, "close": float}, schema.columns)
         self.assertIs(schema.index["security"], str)
 
-    def test_serialize(self):
-        schema = Mock().schema
-        data = schema.to_dict()
-        schema2 = HistorySchema.from_dict(data)
-        self.assertEqual(schema.index_names, schema2.index_names)
-        self.assertEqual(schema.column_names, schema2.column_names)
-
-    def test_to_json(self):
-        schema = Mock().schema
-        to_json = schema.__json__()
-        expected_json = ('{"index": {"security": "str", "date": "Timestamp"}, '
-                         '"columns": {"open": "float", "close": "float"}}')
-        self.assertEqual(json.loads(to_json), json.loads(expected_json))
-
 
 class TestHistory(unittest.TestCase):
     def test_create(self):
-        h = History(Mock().schema, Mock().tight_data)
+        h = History(Mock.schema(), Mock.tight_data())
         self.assertEqual(["security", "date"], h.indices)
         self.assertEqual(["open"], h.columns)
         self.assertEqual(Mock().stocks, h.levels("security"))
 
     def test_concat(self):
-        h = History(Mock().schema, Mock().tight_data)
-        h2 = History(Mock().schema, Mock().small_data)
+        h = History(Mock.schema(), Mock.tight_data())
+        h2 = History(Mock.schema(), Mock.small_data())
 
         h.concat(h2)
         self.assertEqual(8, len(h.data))
@@ -48,8 +35,8 @@ class TestHistory(unittest.TestCase):
         self.assertEqual(2, len(h.data.index.names))
 
     def test_extend(self):  # Expand columns and ignore repeated columns
-        h = History(Mock().schema, Mock().tight_data)
-        h2 = History(Mock().schema, Mock().large_data)
+        h = History(Mock.schema(), Mock.tight_data())
+        h2 = History(Mock.large_schema(), Mock.large_data())
 
         h.extend(h2)
         self.assertEqual(17, len(h.data))
@@ -57,7 +44,7 @@ class TestHistory(unittest.TestCase):
         self.assertEqual(2, len(h.data.index.names))
 
     def test_get(self):
-        h = History(Mock().schema, Mock().large_data)
+        h = History(Mock.large_schema(), Mock.large_data())
 
         h2 = h.get(index={"security": ["FB", "AMZN"]})
         self.assertEqual(6, len(h2.data))
@@ -65,12 +52,12 @@ class TestHistory(unittest.TestCase):
     def test_get_range(self):
         date_range = {"date": slice(None)}
 
-        h = History(Mock().schema, Mock().large_data)
+        h = History(Mock.large_schema(), Mock.large_data())
         h2 = h.get(index=date_range)
         self.assertEqual(17, len(h2.data))
 
     def test_apply(self):
-        h = History(Mock().schema, Mock().large_data)
+        h = History(Mock.large_schema(), Mock.large_data())
 
         result = h.apply({"security": lambda df: df.pct_change()})
 
@@ -101,12 +88,21 @@ class TestOperate(unittest.TestCase):
             'quantity': [50, 75],
         }, index=pd.Index(['sec1', 'sec2'], name='security'))
 
-        self.history1 = History(HistorySchema.from_df(df1), df1)
-        self.history2 = History(HistorySchema.from_df(df2), df2)
+        schema1 = HistorySchema(
+            index={"date": str, "security": str},
+            columns={"open": Number, "close": Number},
+        )
+        schema2 = HistorySchema(
+            index={"security": str},
+            columns={"quantity": Number},
+        )
+
+        self.history1 = History(schema1, df1)
+        self.history2 = History(schema2, df2)
 
     def test_basic_multiplication(self):
         result = self.history1.op(self.history2, columns=['close', 'open'], other_columns=['quantity'],
-                                       operation=self.multiply_operation).data
+                                       operation=self.multiply_operation)
         expected = pd.DataFrame({
             'close': [5500, 5250, 16500],
             'open': [5000, 5500, 15000]
@@ -116,7 +112,14 @@ class TestOperate(unittest.TestCase):
             ('date2', 'sec2')
         ], names=['date', 'security']))
 
-        pd.testing.assert_frame_equal(result, expected)
+        pd.testing.assert_frame_equal(result.data, expected)
+
+        expected_valued = pd.DataFrame({
+            'close': [5500, 5250 + 16500],
+            'open': [5000, 5500 + 15000]
+        }, index=pd.Index(['date1', 'date2'], name='date'))
+
+        pd.testing.assert_frame_equal(result.apply({("date",): lambda x: x.sum(axis=0)}).data, expected_valued)
 
     def test_basic_addition(self):
         result = self.history1.op(self.history2, columns=['close', 'open'], other_columns=['quantity'],

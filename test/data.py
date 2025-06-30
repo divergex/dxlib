@@ -1,10 +1,11 @@
+from abc import ABC
 from numbers import Number
 import pandas as pd
 
 from dxlib import HistorySchema
 
 
-class Mock:
+class Mock(ABC):
     columns = ["open", "close"]
     stocks = ["AAPL", "MSFT", "GOOG", "AMZN", "FB"]
 
@@ -12,35 +13,45 @@ class Mock:
     def schema(cls):
         return HistorySchema(
             index={"security": str, "date": pd.Timestamp},
+            columns={"open": Number},
+        )
+
+    @classmethod
+    def large_schema(cls):
+        return HistorySchema(
+            index={"security": str, "date": pd.Timestamp},
             columns={"open": Number, "volume": Number},
         )
 
-    tight_data = {
-        "index": [
-            ("AAPL", "2021-01-01"),
-            ("MSFT", "2021-01-01"),
-            ("AAPL", "2021-01-02"),
-            ("MSFT", "2021-01-02"),
-            ("GOOG", "2021-01-03"),
-            ("AMZN", "2021-01-03"),
-            ("FB", "2021-01-04"),
-        ],
-        "columns": ["open"],
-        "data": [[100], [200], [101], [201], [102], [202], [103]],
-        "index_names": ["security", "date"],
-        "column_names": [""],
-    }
+    @classmethod
+    def tight_data(cls):
+        return {
+            "index": [
+                ("AAPL", "2021-01-01"),
+                ("MSFT", "2021-01-01"),
+                ("AAPL", "2021-01-02"),
+                ("MSFT", "2021-01-02"),
+                ("GOOG", "2021-01-03"),
+                ("AMZN", "2021-01-03"),
+                ("FB", "2021-01-04"),
+            ],
+            "columns": ["open"],
+            "data": [[100], [200], [101], [201], [102], [202], [103]],
+            "index_names": ["security", "date"],
+            "column_names": [""],
+        }
 
-    small_data = {
-        "index": [
+    @classmethod
+    def small_data(cls):
+        return {"index": [
             ("TSLA", "2021-01-01"),
             ("MSFT", "2021-01-01"),
         ],
-        "columns": ["open"],
-        "data": [[100], [200]],
-        "index_names": ["security", "date"],
-        "column_names": [""]
-    }
+            "columns": ["open"],
+            "data": [[100], [200]],
+            "index_names": ["security", "date"],
+            "column_names": [""]
+        }
 
     @classmethod
     def large_data(cls):
