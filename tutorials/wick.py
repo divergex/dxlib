@@ -1,6 +1,7 @@
 import datetime
 
 from dxlib import Executor, History
+from dxlib.interfaces import BacktestInterface
 from dxlib.interfaces.external.yfinance import YFinance
 from dxlib.strategy.signal.custom.wick_reversal import WickReversal
 from dxlib.strategy.views import SecuritySignalView
@@ -21,7 +22,7 @@ def main():
     history = storage.cached(store, api.historical, History, symbols, start, end)
 
     strat = SignalStrategy(WickReversal())
-    executor = Executor(strat)
+    executor = Executor(strat, BacktestInterface())
     res = executor.run(history, SecuritySignalView())
     print(res)
 

@@ -5,7 +5,6 @@ from uuid import UUID
 from .order import Order
 from .transaction import Transaction
 from .red_black_tree import RedBlackTree
-from .. import Security
 
 
 class PriceLevel:

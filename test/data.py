@@ -2,12 +2,16 @@ from abc import ABC
 from numbers import Number
 import pandas as pd
 
-from dxlib import HistorySchema
+from dxlib import HistorySchema, Security
 
 
 class Mock(ABC):
     columns = ["open", "close"]
     stocks = ["AAPL", "MSFT", "GOOG", "AMZN", "FB"]
+
+    @classmethod
+    def securities(cls):
+        return [Security(symbol) for symbol in cls.stocks]
 
     @classmethod
     def schema(cls):

@@ -1,7 +1,7 @@
 from enum import Enum
 from uuid import uuid4
 
-from dxlib import Security
+from dxlib.core import Security
 
 
 class Side(Enum):

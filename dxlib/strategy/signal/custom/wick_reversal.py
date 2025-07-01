@@ -29,11 +29,7 @@ class WickReversal(SignalGenerator):
         signal[bearish] = -1
 
         return pd.DataFrame({
-            'body': body,
-            'range': range_,
-            'upper_wick': upper_wick,
-            'lower_wick': lower_wick,
-            'signal': signal
+            'order': signal
         }, index=data.index)
 
 

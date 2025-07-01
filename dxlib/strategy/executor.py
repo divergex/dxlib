@@ -1,12 +1,21 @@
-from typing import Type, Union, Generator, Iterator
+from typing import Type, Union, Iterator
 
 from dxlib import History
 from .history_view import HistoryView
+from ..core.portfolio import PortfolioHistory
+from ..interfaces import TradingInterface
 
 
 class Executor:
-    def __init__(self, strategy):
+    def __init__(self, strategy, interface: TradingInterface):
         self.strategy = strategy
+        self.interface = interface
+
+    def _execute(self, observation, history, history_view):
+        history.concat(observation)
+        orders = self.strategy.execute(observation, history, history_view)
+        self.interface.send(orders)
+        return orders
 
     def run(self,
             origin: History | Iterator[History],
@@ -21,18 +30,18 @@ class Executor:
             if (observation := next(observer, None)) is None:
                 return History(history_schema=self.strategy.output_schema(origin))
             history = observation.copy()
-
-        result = History(history_schema=self.strategy.output_schema(history))
+        result = History(self.strategy.output_schema(origin))
 
         if observation is not None:
             result = result.concat(
                 self.strategy.execute(observation, history, history_view)
             )
+        portfolio = PortfolioHistory(result.history_schema.copy().index)
 
         for observation in observer:
-            history.concat(observation)
-            res = self.strategy.execute(observation, history, history_view)
             result.concat(
-                res
+                self._execute(observation, history, history_view)
             )
+            portfolio.concat(self.interface.portfolio())
+
         return result

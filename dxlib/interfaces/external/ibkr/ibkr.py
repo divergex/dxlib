@@ -3,7 +3,7 @@ import time
 
 from ibapi.client import EClient
 
-from ...interface import TradingInterface
+from dxlib.interfaces import TradingInterface
 from .ibkr_account import IbkrAccount
 from .ibkr_market import IbkrMarket
 from .wrapper import IbkrWrapper
