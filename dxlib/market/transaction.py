@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from dxlib.market import Order
+from .orders import Order
 
 
 class Transaction:
@@ -12,10 +12,10 @@ class Transaction:
 
 
 class OrderTransaction:
-    def __init__(self, order: Order, price=None, quantity=None):
+    def __init__(self, order: Order, price, quantity):
         self.order: Order = order
-        self.price = price or order.price
-        self.quantity = quantity or order.quantity
+        self.price = price
+        self.quantity = quantity
 
     def __getattr__(self, item):
         assert hasattr(self.order, item), "Object '%s' has no attribute '%s'" % (self.order.__class__.__name__, item)

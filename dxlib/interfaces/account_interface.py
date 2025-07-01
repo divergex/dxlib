@@ -7,3 +7,6 @@ class AccountInterface(Interface):
         Get the current position of the security.
         """
         raise NotImplementedError
+
+    def equity(self, *args, **kwargs) -> float:
+        raise NotImplementedError

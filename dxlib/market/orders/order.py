@@ -24,3 +24,6 @@ class Order:
 
     def value(self):
         return self.side.value * self.price * self.quantity
+
+    def __str__(self):
+        return f"Order({self.security}, {self.price}, {self.quantity}, {self.side})"

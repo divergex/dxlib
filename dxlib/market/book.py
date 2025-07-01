@@ -2,7 +2,7 @@ from collections import deque
 from typing import Dict
 from uuid import UUID
 
-from .order import Order
+from dxlib.market.orders.order import Order
 from .transaction import Transaction
 from .red_black_tree import RedBlackTree
 

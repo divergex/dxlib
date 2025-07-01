@@ -29,7 +29,7 @@ class WickReversal(SignalGenerator):
         signal[bearish] = -1
 
         return pd.DataFrame({
-            'order': signal
+            'signal': signal
         }, index=data.index)
 
 

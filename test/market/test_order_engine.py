@@ -2,7 +2,7 @@ import unittest
 
 from dxlib import Security
 from dxlib.market import OrderTransaction, Order, Side
-from dxlib.market.order_engine import OrderEngine
+from dxlib.market.orders.order_engine import OrderEngine
 
 
 class TestOrderEngine(unittest.TestCase):
