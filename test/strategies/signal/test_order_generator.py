@@ -4,8 +4,6 @@ from datetime import date
 import pandas as pd
 
 from dxlib import Signal, Security
-from dxlib.interfaces import BacktestInterface
-from dxlib.market import OrderEngine
 from dxlib.strategy.signal.order_generator import OrderGenerator
 
 
@@ -23,7 +21,3 @@ class TestOrderGenerator(unittest.TestCase):
         generator = OrderGenerator()
         orders = generator.generate(self.signals.reset_index('security'))
         print(orders)
-        api = BacktestInterface()
-        api.order_interface.send(orders['order'].values.tolist())
-        portfolio = api.account_interface.portfolio()
-        print(portfolio)

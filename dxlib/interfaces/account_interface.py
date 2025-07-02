@@ -1,8 +1,9 @@
+from dxlib.core import Portfolio
 from .interface import Interface
 
 
 class AccountInterface(Interface):
-    def portfolio(self, *args, **kwargs) -> float:
+    def portfolio(self, *args, **kwargs) -> Portfolio:
         """
         Get the current position of the security.
         """

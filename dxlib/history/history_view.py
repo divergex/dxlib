@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from dxlib import History
+from . import History
 
 
 class HistoryView(ABC):
@@ -22,4 +22,8 @@ class HistoryView(ABC):
     @staticmethod
     @abstractmethod
     def iter(origin: History):
+        pass
+
+    @staticmethod
+    def price(origin: History, idx: int):
         pass

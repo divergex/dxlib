@@ -1,4 +1,3 @@
-import os
 from functools import reduce
 from typing import Dict, List, Union
 
@@ -137,7 +136,7 @@ class History(TypeRegistry):
         return self.data.index.get_level_values(name)
 
     @property
-    def indices(self):
+    def indices(self) -> List[str]:
         """
         Get the indices of the history.
 
@@ -349,7 +348,7 @@ class History(TypeRegistry):
         return History(self.history_schema,
                        func(self.data, other.data if isinstance(other, History) else other, *args, **kwargs))
 
-    def apply(self, func: Dict[str | List[str], callable] | callable, *args, **kwargs) -> "History":
+    def apply(self, func: Dict[str | List[str], callable] | callable, *args, output_schema = None, **kwargs) -> "History":
         if isinstance(func, dict):
             data = self.data
 
@@ -358,21 +357,22 @@ class History(TypeRegistry):
                     data = f(data, *args, **kwargs)
                 else:
                     data = data.groupby(level=idx, group_keys=False).apply(f, *args, **kwargs)
+        else:
+            data = self.data.apply(func, *args, **kwargs)
 
-            if isinstance(data, pd.DataFrame):
-                schema = HistorySchema(
+        if isinstance(data, pd.DataFrame):
+            if not output_schema:
+                output_schema = HistorySchema(
                     index={name: self.history_schema.index.get(name) for name in data.index.names},
                     columns={name: self.history_schema.columns.get(name) for name in data.columns}
                 )
-            elif isinstance(data, pd.Series):
-                schema = self.history_schema.copy()
-                data = data.to_frame().T
-            else:
-                raise ValueError("The function must return a DataFrame or Series.")
-
-            return History(schema, data)
+        elif isinstance(data, pd.Series):
+            output_schema = self.history_schema.copy()
+            data = data.to_frame().T
         else:
-            return History(self.history_schema, self.data.apply(func, *args, **kwargs))
+            raise ValueError("The function must return a DataFrame or Series.")
+
+        return History(output_schema, data)
 
     def dropna(self):
         return History(self.history_schema, self.data.dropna())
@@ -394,8 +394,15 @@ class History(TypeRegistry):
     def __len__(self):
         return len(self.data)
 
+    def __contains__(self, key):
+        return self.data.__contains__(key)
+
     def __getitem__(self, key):
         return self.data[key]
+
+    def __setitem__(self, key, value):
+        self.data[key] = value
+        self.history_schema.columns[key] = type(value)
 
     def __str__(self):
         return f"\n{self.history_schema}, \n{self.data}\n"

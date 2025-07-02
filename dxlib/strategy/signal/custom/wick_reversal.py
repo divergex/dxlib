@@ -1,6 +1,7 @@
 import pandas as pd
 
-from dxlib import History
+from dxlib.core import Signal
+from dxlib.history import HistorySchema
 from dxlib.strategy.signal import SignalGenerator
 
 
@@ -24,14 +25,14 @@ class WickReversal(SignalGenerator):
                 (data['close'] <= data['low'] * 1.05)
         )
 
-        signal = pd.Series(0, index=data.index)
-        signal[bullish] = 1
-        signal[bearish] = -1
+        signal = pd.Series(Signal.HOLD, index=data.index)
+        signal[bullish] = Signal.BUY
+        signal[bearish] = Signal.SELL
 
         return pd.DataFrame({
             'signal': signal
         }, index=data.index)
 
 
-    def output_schema(self, history: History):
-        pass
+    def output_schema(self, history_schema: HistorySchema):
+        return history_schema

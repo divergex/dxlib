@@ -2,7 +2,7 @@ from abc import abstractmethod, ABC
 
 import pandas as pd
 
-from dxlib import History
+from dxlib import History, HistorySchema
 
 
 class SignalGenerator(ABC):
@@ -10,6 +10,5 @@ class SignalGenerator(ABC):
     def generate(self, data: pd.DataFrame):
         pass
 
-    @abstractmethod
-    def output_schema(self, history: History):
-        pass
+    def output_schema(self, history_schema: HistorySchema):
+        return history_schema

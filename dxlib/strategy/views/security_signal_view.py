@@ -1,7 +1,9 @@
 from typing import List
 
+import pandas as pd
+
 from dxlib import History
-from dxlib.strategy.history_view import HistoryView
+from dxlib.history.history_view import HistoryView
 
 
 class SecuritySignalView(HistoryView):
@@ -29,3 +31,8 @@ class SecuritySignalView(HistoryView):
     def iter(self, origin: History):
         for idx in origin.index(name="date"):
             yield self.get(origin, idx)
+
+    def price(self, origin: History, idx: pd.MultiIndex) -> pd.Series:
+        date = idx.get_level_values("date").unique().item()
+        dated_prices = origin.get({"date": [date]})
+        return dated_prices.data.reset_index("date")["close"].rename('price')

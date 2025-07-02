@@ -15,13 +15,13 @@ def to_tick(x, step):
 
 class Portfolio:
     def __init__(self, quantities: Dict[Security, float] = None):
-        self.quantities = pd.Series(quantities) if quantities else pd.Series()
+        self.quantities = pd.Series(quantities, name="quantity") if quantities else pd.Series()
 
     def value(self, prices: pd.Series | Dict[Security, float]) -> float:
         if isinstance(prices, pd.Series):
             return sum(prices * self.quantities)
         else:
-            raise NotImplementedError
+            return sum([prices[security] * self.quantities[security] for security in self.securities])
 
     def weight(self, prices: pd.Series | Dict[Security, float]) -> "Portfolio":
         value = self.value(prices)
@@ -48,6 +48,11 @@ class Portfolio:
 
     def drop_zero(self):
         self.quantities = self.quantities[self.quantities != 0]
+
+    @property
+    def securities(self) -> List[Security]:
+        return list(self.quantities.keys())
+
 
 class PortfolioHistory(History):
     """
@@ -85,7 +90,9 @@ class PortfolioHistory(History):
 
         return values.apply({tuple(set(schema.index_names) - {"security"}): lambda x: x.sum()})
 
-    def insert(self, portfolio: "Portfolio", key: Tuple[any]):
-        # inserts a new portfolio using key index
-        portfolio = pd.concat({key: portfolio.to_frame()}, names=list(set(self.history_schema.index_names) - {"security"}))
-        self.data = pd.concat([self.data, portfolio])
+    def insert(self, portfolio: "Portfolio", key: pd.MultiIndex):
+        df = portfolio.to_frame()
+        if not df.empty:
+            key = key.droplevel("security").unique().item()
+            portfolio = pd.concat({key: df}, names=list(set(self.history_schema.index_names) - {"security"}))
+            self.data = pd.concat([self.data, portfolio])
