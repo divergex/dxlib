@@ -1,8 +1,8 @@
-from typing import Type, Union
+from typing import Type, Union, Tuple
 
 from dxlib import History
 from dxlib.history.history_view import HistoryView
-from ..core.portfolio import PortfolioHistory
+from ..core.portfolio import PortfolioHistory, Portfolio
 from ..interfaces import TradingInterface
 
 
@@ -28,14 +28,14 @@ class Executor:
     def run(self,
             history_view: Union[Type[HistoryView], HistoryView],
             history: History = None,
-            ):
+            ) -> Tuple[History, PortfolioHistory | None]:
         observer = self.market.subscribe(history_view)
         output_schema = self.strategy.output_schema(self.market.history_schema())
         observation = None
 
         if history is None:
             if (observation := next(observer, None)) is None:
-                return History(history_schema=output_schema)
+                return History(history_schema=output_schema), None
             history = observation.copy()
         result = History(output_schema)
 
@@ -44,12 +44,12 @@ class Executor:
                 self._execute(observation, history, history_view)
             )
         portfolio = PortfolioHistory(result.history_schema.copy().index)
-        portfolio.insert(self.account.portfolio(), observation.data.index)
+        portfolio.update(observation.data.index, self.account.portfolio())
 
         for observation in observer:
             result.concat(
                 self._execute(observation, history, history_view)
             )
-            portfolio.insert(self.account.portfolio(), observation.data.index)
+            portfolio.update(observation.data.index, self.account.portfolio())
 
         return result, portfolio

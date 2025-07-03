@@ -12,7 +12,7 @@ class Transaction:
 
 
 class OrderTransaction:
-    def __init__(self, order: Order, price, quantity):
+    def __init__(self, order: Order, price: float, quantity: float):
         self.order: Order = order
         self.price = price
         self.quantity = quantity
@@ -28,3 +28,6 @@ class OrderTransaction:
     @property
     def amount(self):
         return self.order.side.value * self.quantity
+
+    def __str__(self):
+        return f"OrderTransaction({self.order.security}, {self.price}, {self.quantity})"

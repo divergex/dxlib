@@ -2,10 +2,22 @@ import pandas as pd
 
 from dxlib.core import Signal
 from dxlib.history import HistorySchema
-from dxlib.strategy.signal import SignalGenerator
+from dxlib.strategy.signal import SignalGenerator, SignalStrategy
 
 
 class WickReversal(SignalGenerator):
+    def __init__(self,
+                 range_multiplier=0.4,
+                 low_range=1,
+                 up_range=1,
+                 close_multiplier=0.05,
+                 close_high = 1,
+                 close_low = 1):
+        self.low_range = low_range * range_multiplier
+        self.up_range = up_range * range_multiplier
+        self.close_high = 1 - close_high * close_multiplier
+        self.close_low = 1 + close_low * close_multiplier
+
     def generate(self, data: pd.DataFrame) -> pd.DataFrame:
         body = data['close'] - data['open']
         range_ = data['high'] - data['low']
@@ -15,14 +27,14 @@ class WickReversal(SignalGenerator):
 
         bullish = (
                 (body > 0) &
-                (lower_wick > range_ * 0.4) &
-                (data['close'] >= data['high'] * 0.95)
+                (lower_wick > range_ * self.low_range) &
+                (data['close'] >= data['high'] * self.close_high)
         )
 
         bearish = (
                 (body < 0) &
-                (upper_wick > range_ * 0.4) &
-                (data['close'] <= data['low'] * 1.05)
+                (upper_wick > range_ * self.up_range) &
+                (data['close'] <= data['low'] * self.close_low)
         )
 
         signal = pd.Series(Signal.HOLD, index=data.index)

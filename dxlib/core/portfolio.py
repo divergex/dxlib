@@ -83,16 +83,31 @@ class PortfolioHistory(History):
             super().apply(func, *args, **kwargs)
         )
 
-    def value(self, prices: History, price_column: str) -> History:
-        values = self.data["quantity"] * prices.data[price_column]
+    def value(self, prices: pd.DataFrame, price_column: str) -> History:
+        values = self.data["quantity"] * prices[price_column]
         schema = self.history_schema.copy().rename(columns={"quantity": "value"}).set(columns={"value": Number})
         values = History(schema, values.to_frame(name="value"))
 
         return values.apply({tuple(set(schema.index_names) - {"security"}): lambda x: x.sum()})
 
-    def insert(self, portfolio: "Portfolio", key: pd.MultiIndex):
+    def insert(self, key: pd.MultiIndex, portfolio: "Portfolio"):
         df = portfolio.to_frame()
         if not df.empty:
             key = key.droplevel("security").unique().item()
             portfolio = pd.concat({key: df}, names=list(set(self.history_schema.index_names) - {"security"}))
             self.data = pd.concat([self.data, portfolio])
+
+    def update(self, key: pd.MultiIndex, portfolio: "Portfolio"):
+        df = portfolio.to_frame()
+        if df.empty:
+            return
+
+        key = key.droplevel("security").unique().item()
+        index_names = list(set(self.history_schema.index_names) - {"security"})
+        new_data = pd.concat({key: df}, names=index_names)
+
+        if not self.data.empty:
+            to_drop = self.data.index.droplevel("security") == key
+            self.data = self.data.loc[~to_drop]
+
+        self.data = pd.concat([self.data, new_data])
