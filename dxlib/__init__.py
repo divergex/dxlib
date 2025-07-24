@@ -1,5 +1,7 @@
 from . import core
 from . import interfaces
+from . import utils
+from . import data
 
 from .history import *
 from .core import *

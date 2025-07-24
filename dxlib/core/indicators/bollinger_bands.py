@@ -1,7 +1,7 @@
 import pandas as pd
 
 from dxlib.history import History, HistorySchema
-from ..signal import Signal
+from dxlib.market.signal import Signal
 
 
 class BolllingerBands:
@@ -9,7 +9,7 @@ class BolllingerBands:
         self.window = window
         self.std = std
         self.output_schema = HistorySchema(
-            index={"date": pd.Timestamp, "security": str},
+            index={"date": pd.Timestamp, "instruments": str},
             columns={"close": float}
         )
 

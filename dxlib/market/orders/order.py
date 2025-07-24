@@ -1,7 +1,10 @@
+import numbers
 from enum import Enum
 from uuid import uuid4
 
-from dxlib.core import Security
+import numpy as np
+
+from dxlib.core import Instrument
 from dxlib.types import TypeRegistry
 
 
@@ -13,6 +16,10 @@ class Side(Enum):
     @property
     def value(self) -> int:
         return super(Side, self).value
+
+    @classmethod
+    def signed(cls, x: numbers.Number | np.number):
+        return cls((float(x) > 0) - (float(x) < 0))
 
 
 class Order(TypeRegistry):
@@ -28,6 +35,9 @@ class Order(TypeRegistry):
         return self.side.value * self.price * self.quantity
 
     def __str__(self):
+        return f"Order({self.security}, {self.price}, {self.quantity}, {self.side})"
+
+    def __repr__(self):
         return f"Order({self.security}, {self.price}, {self.quantity}, {self.side})"
 
     @classmethod

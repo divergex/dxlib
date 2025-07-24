@@ -31,9 +31,11 @@ class Registry:
         if registry := _REGISTRY.get(t.__qualname__):
             return registry.from_domain(value).model_dump()
         elif serializer := _SERIALIZERS.get(t):
-            return serializer(value)
+            return cls.serialize(serializer(value))
         elif t == dict:
             return {cls.serialize(k): cls.serialize(v) for k, v in value.items()}
+        elif isinstance(value, (list, tuple)):
+            return [cls.serialize(item) for item in value]
         else:
             return value
 

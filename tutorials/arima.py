@@ -16,13 +16,13 @@ def main():
     end = datetime.datetime(2024, 12, 31)
 
     history = cache.cached(storage, History, market_api.historical, symbols, start, end)
-    grouped = history.data.groupby(level='security')
+    grouped = history.data.groupby(level='instruments')
 
     forecast = {}
     error = {}
     dt = 5
     for security, ts in grouped:
-        ts = ts['close'].reset_index(level='security', drop=True)
+        ts = ts['close'].reset_index(level='instruments', drop=True)
         ts = ts.asfreq('B')
         model = ARIMA(ts, order=(1, 1, 1))
         fitted = model.fit()

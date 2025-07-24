@@ -5,7 +5,7 @@ from .interface import Interface
 class AccountInterface(Interface):
     def portfolio(self, *args, **kwargs) -> Portfolio:
         """
-        Get the current position of the security.
+        Get the current position of the instruments.
         """
         raise NotImplementedError
 

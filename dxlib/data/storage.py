@@ -1,7 +1,8 @@
 import hashlib
 import os
 import pickle
-from typing import TypeVar, Type, Any
+import tempfile
+from typing import TypeVar, Type, Callable
 
 import h5py
 import pandas as pd
@@ -68,6 +69,14 @@ class Storage:
 
             return obj_type.model_validate_json(data) if obj_type is not None else data
 
+    def is_writable(self):
+        try:
+            testfile = tempfile.TemporaryFile(dir=self.cache_dir)
+            testfile.close()
+            return True
+        except (OSError, PermissionError):
+            return False
+
     def store(self, storage: str, key: str, data: Serializable, overwrite: bool = False):
         """
         Store an object's data in an HDF5 cache file.
@@ -104,13 +113,15 @@ class Storage:
         data = pickle.dumps((args, kwargs))
         return hashlib.sha256(data).hexdigest()
 
-    def cached(self,
-               storage: str,
-               func: callable,
-               expected_type: Any,
-               *args,
-               hash_function: callable = None,
-               **kwargs) -> Any:
+    def cached(
+            self,
+            storage: str,
+            expected_type: Type[T],
+            func: callable,
+            *args,
+            hash_function: Callable = None,
+            **kwargs
+    ) -> T:
         model = Registry.get(expected_type)
 
         func_name = func.__qualname__
@@ -120,7 +131,8 @@ class Storage:
             return self.load(storage, key, model).to_domain()
         except (KeyError, FileNotFoundError):
             obj = func(*args, **kwargs)
-            self.store(storage, key, model.from_domain(obj), overwrite=True)  # None.
+            if self.is_writable():
+                self.store(storage, key, model.from_domain(obj), overwrite=True)  # None.
             return obj
 
     # endregion

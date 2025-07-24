@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from enum import Enum
 
 from dxlib.types import TypeRegistry
@@ -14,7 +13,7 @@ class AssetClass(Enum):
     CRYPTO = "crypto"
 
 
-class Security(TypeRegistry):
+class Instrument(TypeRegistry):
     def __init__(self, symbol: str, name: str = None, asset_class: AssetClass = None, tick_size = 1):
         self.symbol = symbol
         self.name = name
@@ -22,6 +21,9 @@ class Security(TypeRegistry):
         self.tick_size = tick_size
 
     def __str__(self):
+        return f"{self.__class__.__name__}({self.symbol})"
+
+    def __repr__(self):
         return f"{self.__class__.__name__}({self.symbol})"
 
     def __eq__(self, other):

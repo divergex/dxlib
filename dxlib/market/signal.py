@@ -1,7 +1,7 @@
 from enum import Enum
 
-from dxlib.market import Side
 from dxlib.types import TypeRegistry
+from .orders import Side
 
 
 class Signal(TypeRegistry, Enum):

@@ -16,14 +16,14 @@ class Mock(ABC):
     @classmethod
     def schema(cls):
         return HistorySchema(
-            index={"security": str, "date": pd.Timestamp},
+            index={"instruments": str, "date": pd.Timestamp},
             columns={"open": Number},
         )
 
     @classmethod
     def large_schema(cls):
         return HistorySchema(
-            index={"security": str, "date": pd.Timestamp},
+            index={"instruments": str, "date": pd.Timestamp},
             columns={"open": Number, "volume": Number},
         )
 
@@ -41,7 +41,7 @@ class Mock(ABC):
             ],
             "columns": ["open"],
             "data": [[100], [200], [101], [201], [102], [202], [103]],
-            "index_names": ["security", "date"],
+            "index_names": ["instruments", "date"],
             "column_names": [""],
         }
 
@@ -53,7 +53,7 @@ class Mock(ABC):
         ],
             "columns": ["open"],
             "data": [[100], [200]],
-            "index_names": ["security", "date"],
+            "index_names": ["instruments", "date"],
             "column_names": [""]
         }
 
@@ -99,6 +99,6 @@ class Mock(ABC):
                 [207, 2007],
                 [108, 1008],
             ],
-            "index_names": ["security", "date"],
+            "index_names": ["instruments", "date"],
             "column_names": [""],
         }

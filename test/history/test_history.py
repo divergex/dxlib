@@ -13,17 +13,17 @@ from data import Mock
 class TestSchema(unittest.TestCase):
     def test_create(self):
         schema = Mock.schema()
-        self.assertEqual({"security": str, "date": pd.Timestamp}, schema.index)
+        self.assertEqual({"instruments": str, "date": pd.Timestamp}, schema.index)
         self.assertEqual({"open": float, "close": float}, schema.columns)
-        self.assertIs(schema.index["security"], str)
+        self.assertIs(schema.index["instruments"], str)
 
 
 class TestHistory(unittest.TestCase):
     def test_create(self):
         h = History(Mock.schema(), Mock.tight_data())
-        self.assertEqual(["security", "date"], h.indices)
+        self.assertEqual(["instruments", "date"], h.indices)
         self.assertEqual(["open"], h.columns)
-        self.assertEqual(Mock().stocks, h.levels("security"))
+        self.assertEqual(Mock().stocks, h.levels("instruments"))
 
     def test_concat(self):
         h = History(Mock.schema(), Mock.tight_data())
@@ -46,7 +46,7 @@ class TestHistory(unittest.TestCase):
     def test_get(self):
         h = History(Mock.large_schema(), Mock.large_data())
 
-        h2 = h.get(index={"security": ["FB", "AMZN"]})
+        h2 = h.get(index={"instruments": ["FB", "AMZN"]})
         self.assertEqual(6, len(h2.data))
 
     def test_get_range(self):
@@ -59,7 +59,7 @@ class TestHistory(unittest.TestCase):
     def test_apply(self):
         h = History(Mock.large_schema(), Mock.large_data())
 
-        result = h.apply({"security": lambda df: df.pct_change()})
+        result = h.apply({"instruments": lambda df: df.pct_change()})
 
         print(result.data.sort_index().dropna())
 
@@ -82,18 +82,18 @@ class TestOperate(unittest.TestCase):
             ('date1', 'sec1'),
             ('date2', 'sec1'),
             ('date2', 'sec2')
-        ], names=['date', 'security']))
+        ], names=['date', 'instruments']))
 
         df2 = pd.DataFrame({
             'quantity': [50, 75],
-        }, index=pd.Index(['sec1', 'sec2'], name='security'))
+        }, index=pd.Index(['sec1', 'sec2'], name='instruments'))
 
         schema1 = HistorySchema(
-            index={"date": str, "security": str},
+            index={"date": str, "instruments": str},
             columns={"open": Number, "close": Number},
         )
         schema2 = HistorySchema(
-            index={"security": str},
+            index={"instruments": str},
             columns={"quantity": Number},
         )
 
@@ -101,7 +101,7 @@ class TestOperate(unittest.TestCase):
         self.history2 = History(schema2, df2)
 
     def test_basic_multiplication(self):
-        result = self.history1.op(self.history2, columns=['close', 'open'], other_columns=['quantity'],
+        result = self.history1.on(self.history2, columns=['close', 'open'], other_columns=['quantity'],
                                        operation=self.multiply_operation)
         expected = pd.DataFrame({
             'close': [5500, 5250, 16500],
@@ -110,7 +110,7 @@ class TestOperate(unittest.TestCase):
             ('date1', 'sec1'),
             ('date2', 'sec1'),
             ('date2', 'sec2')
-        ], names=['date', 'security']))
+        ], names=['date', 'instruments']))
 
         pd.testing.assert_frame_equal(result.data, expected)
 
@@ -122,7 +122,7 @@ class TestOperate(unittest.TestCase):
         pd.testing.assert_frame_equal(result.apply({("date",): lambda x: x.sum(axis=0)}).data, expected_valued)
 
     def test_basic_addition(self):
-        result = self.history1.op(self.history2, columns=['close', 'open'], other_columns=['quantity'],
+        result = self.history1.on(self.history2, columns=['close', 'open'], other_columns=['quantity'],
                                        operation=self.add_operation).data
         expected = pd.DataFrame({
             'close': [160, 155, 295],
@@ -131,7 +131,7 @@ class TestOperate(unittest.TestCase):
             ('date1', 'sec1'),
             ('date2', 'sec1'),
             ('date2', 'sec2')
-        ], names=['date', 'security']))
+        ], names=['date', 'instruments']))
 
         pd.testing.assert_frame_equal(result, expected)
 

@@ -1,19 +1,19 @@
-from typing import Type
+from typing import Type, ClassVar
 
 from pydantic import BaseModel
 
-from dxlib import Security
+from dxlib.core import Instrument
 from dxlib.data import Serializable
 from dxlib.data.serializable import DtoT, DomainT
 
 
-class SecurityDto(BaseModel, Serializable[Security]):
-    domain_cls = Security
+class InstrumentDto(BaseModel, Serializable[Instrument]):
+    domain_cls: ClassVar[Type[Instrument]] = Instrument
 
     symbol: str
 
     def to_domain(self) -> DomainT:
-        return Security(
+        return Instrument(
             symbol=self.symbol,
         )
 

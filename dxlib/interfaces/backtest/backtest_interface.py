@@ -2,7 +2,7 @@ from typing import List
 
 import pandas as pd
 
-from dxlib.core import Portfolio, Security
+from dxlib.core import Portfolio, Instrument
 from dxlib.history import History, HistorySchema, HistoryView
 from dxlib.interfaces import TradingInterface, OrderInterface, AccountInterface, MarketInterface
 from dxlib.market import Order, OrderTransaction, OrderEngine, Size, SizeType
@@ -50,29 +50,29 @@ class BacktestAccountInterface(AccountInterface):
 
 
 class BacktestMarketInterface(MarketInterface):
-    def __init__(self, context: "BacktestInterface", base_security: Security = None):
+    def __init__(self, context: "BacktestInterface", base_security: Instrument = None):
         super().__init__()
         self.context = context
         self.index = None
         self.observation = None
-        self.base_security = base_security or Security("USD")
+        self.base_security = base_security or Instrument("USD")
         self.prices = pd.Series({self.base_security: 1}, name="price")
         self.price_history = pd.DataFrame()
 
-    def quote(self, security: str | Security | List[str | Security]) -> float | pd.Series:
+    def quote(self, security: str | Instrument | List[str | Instrument]) -> float | pd.Series:
         if isinstance(security, List) and len(security) > 0:
             if isinstance(security[0], str):
-                security = [Security(sec) for sec in security]
-        elif isinstance(security, (Security, str)):
-            security = [Security(security) if isinstance(security, str) else security]
+                security = [Instrument(sec) for sec in security]
+        elif isinstance(security, (Instrument, str)):
+            security = [Instrument(security) if isinstance(security, str) else security]
         return self.prices[security]
 
     @staticmethod
     def set_price_history(price_history, index, prices):
-        base_index = index.droplevel('security').unique()
+        base_index = index.droplevel('instruments').unique()
         securities = prices.index.unique()
-        new_index = pd.MultiIndex.from_product([base_index, securities], names=base_index.names + ['security'])
-        prices_mapped = pd.Series(new_index.get_level_values('security')).map(prices).values
+        new_index = pd.MultiIndex.from_product([base_index, securities], names=base_index.names + ['instruments'])
+        prices_mapped = pd.Series(new_index.get_level_values('instruments')).map(prices).values
         new_data = pd.DataFrame({'close': prices_mapped}, index=new_index)
         price_history = price_history.drop(index=new_index, errors='ignore')
         price_history = pd.concat([price_history, new_data])

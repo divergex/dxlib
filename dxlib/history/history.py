@@ -14,7 +14,7 @@ class History(TypeRegistry):
     A history is a term used to describe a collection of data points.
 
     A history in the context of this library is extended to include the concept of a time series.
-    Usually the data points are indexed by time and sometimes by a security.
+    Usually the data points are indexed by time and sometimes by a instruments.
 
     The main purpose of a history is to provide common methods to manipulate and analyze the data, as well as context.
     This is useful for easily storing, retrieving, backtesting and networking data.
@@ -60,7 +60,7 @@ class History(TypeRegistry):
             raise TypeError("Invalid data type.")
 
         # test if self.data index is in accordance to schema
-        self.data = self.validate(data)
+        self.data: pd.DataFrame = self.validate(data)
 
     def validate(self, data):
         if self.history_schema is not None and data is not None:
@@ -238,7 +238,7 @@ class History(TypeRegistry):
             return v.item()
         return v
 
-    def get(self, index: Dict[str, slice | list] = None, columns: List[str] | str = None, raw=False) -> Union["History", pd.DataFrame]:
+    def get(self, index: Dict[str, slice | list] = None, columns: List[str] | str = None, raw=False) -> "History":
         """
         Get a subset of the history, given values or a slice of desired index values for each index.
 
@@ -298,7 +298,7 @@ class History(TypeRegistry):
         self.data.update(values)
         self.data = pd.concat([self.data, values], sort=False).groupby(level=self.data.index.names).first()
 
-    def op(self,
+    def on(self,
            other: "History",
            columns: List[any],
            other_columns: List[any],
@@ -344,10 +344,6 @@ class History(TypeRegistry):
 
         return History(self.history_schema, result)
 
-    def apply_on(self, other, func, *args, **kwargs):
-        return History(self.history_schema,
-                       func(self.data, other.data if isinstance(other, History) else other, *args, **kwargs))
-
     def apply(self, func: Dict[str | List[str], callable] | callable, *args, output_schema = None, **kwargs) -> "History":
         if isinstance(func, dict):
             data = self.data
@@ -373,6 +369,9 @@ class History(TypeRegistry):
             raise ValueError("The function must return a DataFrame or Series.")
 
         return History(output_schema, data)
+
+    def op(self, func, *args, **kwargs) -> pd.DataFrame:
+        return func(self.data, *args, **kwargs)
 
     def dropna(self):
         return History(self.history_schema, self.data.dropna())

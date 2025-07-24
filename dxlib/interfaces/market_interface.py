@@ -3,7 +3,7 @@ from typing import Iterator, List
 
 import pandas as pd
 
-from dxlib.core import Security
+from dxlib.core import Instrument, InstrumentStore
 from dxlib.history import History, HistorySchema, HistoryView
 from .interface import Interface
 
@@ -15,9 +15,9 @@ class MarketInterface(Interface):
     def stop(self):
         raise NotImplementedError
 
-    def quote(self, symbols: List[str] | str | Security | List[Security]) -> float | pd.DataFrame:
+    def quote(self, symbols: List[str] | str | Instrument | List[Instrument]) -> float | pd.DataFrame:
         """
-        Get the current price of the security.
+        Get the current price of the instruments.
         """
         raise NotImplementedError
 
@@ -27,9 +27,9 @@ class MarketInterface(Interface):
         """
         raise NotImplementedError
 
-    def historical(self, symbols: list[str], start: datetime, end: datetime, interval: str) -> History:
+    def historical(self, symbols: list[str], start: datetime, end: datetime, interval: str, store: InstrumentStore) -> History:
         """
-        Get the historical price of the security.
+        Get the historical price of the instruments.
         """
         raise NotImplementedError
 
@@ -38,3 +38,6 @@ class MarketInterface(Interface):
         Return the schema of the historical and subscribe data.
         """
         raise NotImplementedError(f"{self.__class__.__name__} does not implement history_schema")
+
+    def symbols(self, query: str) -> List[str]:
+        raise NotImplementedError(f"{self.__class__.__name__} does not implement symbols")

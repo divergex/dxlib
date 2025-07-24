@@ -3,7 +3,7 @@ from typing import Dict, Type, Optional, ClassVar
 import pandas as pd
 from pydantic import Field, BaseModel
 
-from dxlib import History, HistorySchema
+from dxlib.history import History, HistorySchema
 
 from ..serializable import Serializable
 
@@ -35,7 +35,7 @@ class HistoryDto(BaseModel, Serializable[History]):
 
     def to_domain(self) -> History:
         schema = self.history_schema.to_domain()
-        df = self.deserialize(self.data, pd.DataFrame)
+        df = self.deserialize(self.data, dict)
 
         for col, expected_type in schema.columns.items():
             df[col] = df[col].apply(lambda x: self.deserialize(x, expected_type))

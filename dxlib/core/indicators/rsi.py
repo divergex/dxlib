@@ -1,9 +1,7 @@
-from datetime import datetime
-
 import pandas as pd
 
-from dxlib.history import History, HistorySchema
-from ..signal import Signal
+from dxlib.history import History
+from dxlib.market.signal import Signal
 
 
 class RSI:

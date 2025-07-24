@@ -17,7 +17,7 @@ class SecuritySignalView(HistoryView):
 
     @classmethod
     def _apply_simple(cls, history: History, function: callable):
-        return history.apply({"security": function})
+        return history.apply({"instruments": function})
 
     def _apply_col(self, history: History, function: callable):
         return self._apply_simple(history.get(columns=self.columns), function)

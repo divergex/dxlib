@@ -23,7 +23,7 @@ class MockMarket(MarketInterface):
         columns = ["open", "high", "low", "close", "volume"]
         date = pd.date_range(start=start, end=end, periods=n)
 
-        index = pd.MultiIndex.from_product([symbols, date], names=["security", "date"])
+        index = pd.MultiIndex.from_product([symbols, date], names=["instruments", "date"])
 
         data = pd.DataFrame(index=index, columns=columns)
 
@@ -43,6 +43,6 @@ class MockMarket(MarketInterface):
     @property
     def history_schema(self):
         return HistorySchema(
-            index={"date": pd.Timestamp, "security": str},
+            index={"date": pd.Timestamp, "instruments": str},
             columns={"open": float, "high": float, "low": float, "close": float, "volume": float}
         )

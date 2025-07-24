@@ -39,5 +39,10 @@ class TestYFinance(unittest.TestCase):
         print(quotes)
         print(generalized_arbitrage_signal(quotes))
 
+    def test_symbols(self):
+        query = "totv"
+        symbols = self.api.symbols(query)
+        print(symbols)
+
 if __name__ == '__main__':
     unittest.main()

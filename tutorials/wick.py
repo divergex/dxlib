@@ -4,7 +4,7 @@ import itertools
 import numpy as np
 import pandas as pd
 
-from dxlib import Executor, History, Portfolio, Security
+from dxlib import Executor, History, Portfolio, Instrument
 from dxlib.interfaces import BacktestInterface
 from dxlib.interfaces.external.yfinance import YFinance
 from dxlib.strategy.signal.custom.wick_reversal import WickReversal
@@ -24,12 +24,12 @@ def main():
     storage = Storage()
     store = "yfinance"
 
-    def run_backtest(range_mult, close_mult):
+    def run_backtest(range_multiplier, close_multiplier):
         history = storage.cached(store, api.historical, History, symbols, start, end)
         history_view = SecuritySignalView()
 
-        strat = SignalStrategy(WickReversal(range_multiplier=range_mult, close_multiplier=close_mult), OrderGenerator())
-        portfolio = Portfolio({Security("USD"): 1000})
+        strat = SignalStrategy(WickReversal(range_multiplier=range_multiplier, close_multiplier=close_multiplier), OrderGenerator())
+        portfolio = Portfolio({Instrument("USD"): 1000})
         interface = BacktestInterface(history, portfolio, history_view)
         executor = Executor(strat, interface)
         orders, portfolio = executor.run(history_view)

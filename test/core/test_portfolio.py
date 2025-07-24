@@ -27,12 +27,12 @@ class TestPortfolioHistory(unittest.TestCase):
     def test_history(self):
         sec = [Security("AAPL"), Security("MSFT")]
         ph2 = PortfolioHistory(
-            schema_index={"security": Security, "date": date},
+            schema_index={"instruments": Security, "date": date},
             data={
                 'index': [(sec[0], date(2021, 1, 1)), (sec[1], date(2021, 1, 1))],
                 'columns': ["quantity"],
                 'data': [[2], [2]],
-                'index_names': ["security", "date"],
+                'index_names': ["instruments", "date"],
                 'column_names': [None]
             }
         )
@@ -40,11 +40,11 @@ class TestPortfolioHistory(unittest.TestCase):
 
     def test_value(self):
         sec = [Security("AAPL"), Security("MSFT")]
-        index = pd.MultiIndex.from_product([[date(2021, 1, 1), date(2021, 1, 2)], sec], names=["date", "security"])
+        index = pd.MultiIndex.from_product([[date(2021, 1, 1), date(2021, 1, 2)], sec], names=["date", "instruments"])
 
         prices = History(
             HistorySchema(
-                index={"security": Security, "date": date},
+                index={"instruments": Security, "date": date},
                 columns={"open": Number, "close": Number},
             ),
             pd.DataFrame(
@@ -54,7 +54,7 @@ class TestPortfolioHistory(unittest.TestCase):
         )
 
         ph = PortfolioHistory(
-            schema_index={"security": Security, "date": date},
+            schema_index={"instruments": Security, "date": date},
             data=pd.DataFrame({"quantity": [1, 2, 2, 1]}, index=index),
         )
 
@@ -62,10 +62,10 @@ class TestPortfolioHistory(unittest.TestCase):
 
     def test_insert(self):
         sec = [Security("AAPL"), Security("MSFT")]
-        index = pd.MultiIndex.from_product([[date(2021, 1, 1), date(2021, 1, 2)], sec], names=["date", "security"])
+        index = pd.MultiIndex.from_product([[date(2021, 1, 1), date(2021, 1, 2)], sec], names=["date", "instruments"])
 
         ph = PortfolioHistory(
-            schema_index={"security": Security, "date": date},
+            schema_index={"instruments": Security, "date": date},
             data=pd.DataFrame({"quantity": [1, 2, 2, 1]}, index=index),
         )
 

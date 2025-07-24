@@ -9,7 +9,7 @@ from test.data import Mock
 class TestExecutor(unittest.TestCase):
     def setUp(self):
         self.output_schema = HistorySchema(
-            index={"security": str, "date": pd.Timestamp},
+            index={"instruments": str, "date": pd.Timestamp},
             columns={"open": float, "close": float},
         )
 
