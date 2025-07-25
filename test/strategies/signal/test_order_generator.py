@@ -4,7 +4,7 @@ from datetime import date
 import pandas as pd
 
 from dxlib import Signal, Security
-from dxlib.strategy.signal.order_generator import OrderGenerator
+from dxlib.strategy.order_generator.order_generator import OrderGenerator
 
 
 class TestOrderGenerator(unittest.TestCase):

@@ -8,7 +8,7 @@ from dxlib import Executor, History, Portfolio, Instrument
 from dxlib.interfaces import BacktestInterface
 from dxlib.interfaces.external.yfinance import YFinance
 from dxlib.strategy.signal.custom.wick_reversal import WickReversal
-from dxlib.strategy.signal.order_generator import OrderGenerator
+from dxlib.strategy.order_generator.order_generator import OrderGenerator
 from dxlib.strategy.views import SecuritySignalView
 from dxlib.strategy.signal import SignalStrategy
 from dxlib.data import Storage

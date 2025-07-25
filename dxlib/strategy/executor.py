@@ -13,7 +13,7 @@ class Executor:
 
     def _execute(self, observation, history, history_view: HistoryView):
         history.concat(observation)
-        orders = self.strategy.execute(observation, history, history_view)
+        orders = self.strategy.execute()
         self.interface.send(orders.data['order'].values)
         return orders
 

@@ -2,8 +2,9 @@ from typing import Type
 
 from dxlib.history import History, HistorySchema, HistoryView
 from dxlib.market import Order
+from ..order_generator import OrderGenerator
 from ..strategy import Strategy
-from . import SignalGenerator, OrderGenerator
+from . import SignalGenerator
 
 
 class SignalStrategy(Strategy):

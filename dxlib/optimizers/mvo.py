@@ -3,15 +3,17 @@ from typing import Literal, Tuple
 
 import numpy as np
 import numpy.linalg as linalg
+import pandas as pd
 
 
 class PortfolioOptimizer(ABC):
     @abstractmethod
-    def optim(self, *args, **kwargs):
+    def optimize(self, *args, **kwargs):
         pass
 
     def __call__(self, *args, **kwargs) -> Tuple:
-        return self.optim(*args, **kwargs)
+        return self.optimize(*args, **kwargs)
+
 
 class Mvo(PortfolioOptimizer):
     def __init__(self, target: Literal["risk_aversion", "target_return"] = "risk_aversion"):
@@ -20,10 +22,13 @@ class Mvo(PortfolioOptimizer):
         else:
             self._optim = self._optim_risk_aversion
 
-    def optim(self, *args, **kwargs):
-        return self._optim(*args, **kwargs)
+    def optimize(self, returns: pd.Series, covariance: np.array, param: float):
+        weights, params = self._optim(returns.to_numpy(), covariance, param)
+        return pd.Series({
+            returns.index[i]: weights[i] for i in range(len(covariance))
+        }), params
 
-    def _optim_risk_aversion(self, returns: np.array, covariance: np.array, gamma: float):
+    def _optim_risk_aversion(self, returns: np.array, covariance: np.array, gamma: float) -> Tuple[np.array, Tuple]:
         n = len(returns)
         mat = np.vstack([
             np.hstack([gamma * covariance, np.ones((n, 1))]),
@@ -32,7 +37,7 @@ class Mvo(PortfolioOptimizer):
         rhs = np.concatenate([returns, [1]])
         solution = linalg.solve(mat, rhs)
         w, lmbda = solution[:n], solution[n]
-        return w, lmbda
+        return w, (lmbda, None)
 
     ### Portf
     def _optim_target_return(self, returns: np.array, covariance: np.array, mu):
@@ -48,7 +53,7 @@ class Mvo(PortfolioOptimizer):
         rhs = np.concatenate([np.zeros(n), [mu], [1]])
         solution = linalg.solve(mat, rhs)
         w, lmbda, vega = solution[:n], solution[n], solution[n + 1]
-        return w, lmbda, vega
+        return w, (lmbda, vega)
 
 
 if __name__ == '__main__':

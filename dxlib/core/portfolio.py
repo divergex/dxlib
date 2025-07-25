@@ -4,7 +4,7 @@ from typing import Dict, Type, List, Union
 
 import pandas as pd
 
-from . instruments import Instrument
+from .instruments import Instrument
 from dxlib.history import History, HistorySchema
 
 
@@ -14,7 +14,7 @@ def to_tick(x, step):
 
 class Portfolio:
     def __init__(self, quantities: Dict[Instrument, float] = None):
-        self.quantities = pd.Series(quantities, name="quantity") if quantities else pd.Series()
+        self.quantities = pd.Series(quantities) if quantities else pd.Series()
 
     def value(self, prices: pd.Series | Dict[Instrument, float]) -> float:
         if isinstance(prices, pd.Series):
@@ -26,23 +26,45 @@ class Portfolio:
         value = self.value(prices)
         return Portfolio(self.quantities.copy() / value)
 
+    @staticmethod
+    def ensure_index(indexer, to_reindex):
+        if not indexer.index.equals(to_reindex.index):
+            to_reindex = to_reindex.reindex(indexer.index)
+            isnull = to_reindex.isnull()
+            if isnull.any():
+                raise ValueError(f"Missing prices for: {to_reindex[isnull].index.tolist()}")
+
     @classmethod
     def from_weights(cls,
                      weights: Union[pd.Series, Dict["Instrument", float]],
-                     prices: Union[pd.Series, Dict["Instrument", float]]
+                     prices: Union[pd.Series, Dict["Instrument", float]],
+                     value: float
                      ) -> "Portfolio":
         weights = pd.Series(weights)
         prices = pd.Series(prices)
 
-        if not weights.index.equals(prices.index):
-            prices = prices.reindex(weights.index)
-            isnull = prices.isnull()
-            if isnull.any():
-                raise ValueError(f"Missing prices for: {prices[isnull].index.tolist()}")
+        cls.ensure_index(weights, prices)
 
         weights = weights / weights.sum()
-        quantities = weights / prices
+        quantities = weights * value / prices
 
+        return cls(quantities.to_dict())
+
+    @classmethod
+    def from_values(cls,
+                    values: Union[pd.Series, Dict["Instrument", float]],
+                    prices: Union[pd.Series, Dict["Instrument", float]],
+                    ):
+        # transform values / prices -> quantities
+        values = pd.Series(values)
+        prices = pd.Series(prices)
+        total = values.sum()
+        return cls.from_weights(values / total, prices, total)
+
+    @classmethod
+    def from_series(cls,
+                    quantities: pd.Series,
+                    ):
         return cls(quantities.to_dict())
 
     def get(self, security: Instrument, default: float = 0) -> float:
@@ -87,7 +109,7 @@ class PortfolioHistory(History):
                  schema_index: Dict[str, Type] = None,
                  data: pd.DataFrame | dict = None):
         assert "instruments" in list(
-            schema_index.keys()), "Index can not be converted to portfolio type. Must be instruments indexed at some level."
+            schema_index.keys()), "Index can not be converted to portfolio type. Must have instruments indexed at some level."
         schema = HistorySchema(
             index=schema_index,
             columns={"quantity": Number},

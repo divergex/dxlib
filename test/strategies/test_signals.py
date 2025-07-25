@@ -24,7 +24,7 @@ class TestRsi(unittest.TestCase):
         # get last index
         observation = self.history.data.index[-1]
         observation = self.history.get(index={"date": [observation]})
-        result = rsi.execute(observation, self.history.get(columns=["close"]))
+        result = rsi.execute()
         data = result.data
         data = data.dropna()
 

@@ -123,7 +123,7 @@ class History(TypeRegistry):
         else:
             return {name: self.levels(name) for name in (names if names else self.indices)}
 
-    def index(self, name: str) -> pd.Index:
+    def index(self, name: str | None) -> pd.Index:
         """
         Get the index by name.
 
