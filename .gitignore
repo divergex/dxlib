@@ -7,3 +7,5 @@
 .vscode/
 launch.json
 dist/
+
+*.h5
