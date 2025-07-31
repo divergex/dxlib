@@ -6,10 +6,8 @@ from .instrument import Instrument
 
 
 class InstrumentStore(TypeRegistry):
-    def __init__(self, identifier=uuid.uuid4().hex, instruments: Dict[str, Instrument] = None):
+    def __init__(self, instruments: Dict[str, Instrument] = None):
         super().__init__()
-        self.identifier = identifier
-
         self.instruments: Dict[str, Instrument] = instruments or {}
 
     def get(self, symbol: str, default=None):
@@ -53,16 +51,19 @@ class InstrumentStore(TypeRegistry):
             self.instruments[instrument.symbol] = instrument
 
     @classmethod
-    def from_symbols(cls, symbols: List[str], identifier=uuid.uuid4().hex):
-        store = InstrumentStore(identifier)
+    def from_symbols(cls, symbols: List[str]):
+        store = InstrumentStore()
         store.add_symbols(symbols)
         return store
 
     @classmethod
-    def from_list(cls, instruments: List[Instrument], identifier=uuid.uuid4().hex):
-        store = InstrumentStore(identifier)
+    def from_list(cls, instruments: List[Instrument]):
+        store = InstrumentStore()
         store.add_instruments(instruments)
         return store
 
+    def to_list(self) -> List[Instrument]:
+        return list(self.instruments.values())
+
     def __hash__(self):
-        return hash(self.identifier)
+        return hash(self.instruments)

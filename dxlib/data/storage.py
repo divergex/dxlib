@@ -2,7 +2,7 @@ import hashlib
 import os
 import pickle
 import tempfile
-from typing import TypeVar, Type, Callable
+from typing import TypeVar, Type, Callable, Any
 
 import h5py
 import pandas as pd
@@ -60,6 +60,8 @@ class Storage:
             KeyError: If the key is not present in the storage unit.
         """
         cache_path = self._path(storage)
+        # ensure path exists
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
 
         with h5py.File(cache_path, 'r') as f:
             obj_data = f.get(key)
@@ -113,15 +115,34 @@ class Storage:
         data = pickle.dumps((args, kwargs))
         return hashlib.sha256(data).hexdigest()
 
-    def cached(
-            self,
-            storage: str,
-            expected_type: Type[T],
-            func: callable,
-            *args,
-            hash_function: Callable = None,
-            **kwargs
-    ) -> T:
+    def exists(self,
+               storage: str,
+               func: Callable,
+               *args,
+               hash_function: Callable[[str, Any], str] = None,
+               **kwargs,
+               ):
+        func_name = func.__qualname__
+        key = hash_function(func_name, *args, **kwargs) if hash_function else self._hash(func_name, *args, **kwargs)
+        cache_path = self._path(storage)
+
+        try:
+            with h5py.File(cache_path, 'r') as f:
+                if key in f:
+                    return True
+            return False
+        except (OSError, KeyError):
+            return False
+
+
+    def cached(self,
+               storage: str,
+               expected_type: Type[T],
+               func: callable,
+               *args,
+               hash_function: Callable = None,
+               **kwargs
+               ) -> T:
         model = Registry.get(expected_type)
 
         func_name = func.__qualname__

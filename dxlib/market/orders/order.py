@@ -23,8 +23,8 @@ class Side(Enum):
 
 
 class Order(TypeRegistry):
-    def __init__(self, security, price, quantity, side: Side, uuid=None, client=None):
-        self.security: Security = security
+    def __init__(self, instrument, price, quantity, side: Side, uuid=None, client=None):
+        self.instrument: Instrument = instrument
         self.uuid = uuid4() if uuid is None else uuid
         self.price = price
         self.quantity = quantity
@@ -35,19 +35,19 @@ class Order(TypeRegistry):
         return self.side.value * self.price * self.quantity
 
     def __str__(self):
-        return f"Order({self.security}, {self.price}, {self.quantity}, {self.side})"
+        return f"Order({self.instrument}, {self.price}, {self.quantity}, {self.side})"
 
     def __repr__(self):
-        return f"Order({self.security}, {self.price}, {self.quantity}, {self.side})"
+        return f"Order({self.instrument}, {self.price}, {self.quantity}, {self.side})"
 
     @classmethod
     def none(cls):
         return Order(
-            security=None,
+            instrument=None,
             price=None,
             quantity=None,
             side=Side.NONE,
         )
 
     def is_none(self):
-        return self.security is None and self.side == Side.NONE
+        return self.instrument is None and self.side == Side.NONE

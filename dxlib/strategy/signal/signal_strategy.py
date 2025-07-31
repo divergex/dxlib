@@ -17,11 +17,16 @@ class SignalStrategy(Strategy):
                 history: History,
                 history_view: Type[HistoryView],
                 *args, **kwargs) -> History:
-        signals: History = history_view.apply(history, self.signal_generator.generate)
+        input_schema = history_view.history_schema(history.history_schema)
+        signal_schema = self.signal_generator.output_schema(input_schema)
+        def _generate(data):
+            return self.signal_generator.generate(data, input_schema)
+
+        signals: History = history_view.apply(history, _generate, signal_schema)
         orders = self.order_generator.generate(signals)
         return orders.loc(index=observation.data.index)
 
     def output_schema(self, history_schema: HistorySchema):
         signal_schema = self.signal_generator.output_schema(history_schema)
-        order_schema = HistorySchema(signal_schema.index.copy(), {"order": Order})
+        order_schema = HistorySchema(signal_schema.index.copy(), {key: Order for key in signal_schema.column_names})
         return order_schema

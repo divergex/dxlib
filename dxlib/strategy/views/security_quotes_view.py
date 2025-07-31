@@ -1,24 +1,28 @@
-from dxlib import History
+from dxlib import History, HistorySchema
 from dxlib.strategy import HistoryView
 
 
 class SecurityQuotes(HistoryView):
     @staticmethod
-    def len(history: History):
-        # Unique timestamps
-        return len(history.index(name="timestamp").unique())
+    def history_schema(history_schema: HistorySchema):
+        return history_schema.copy()
 
     @staticmethod
-    def apply(history: History, function: callable):
+    def len(history: History):
+        # Unique timestamps
+        return len(history.index(name="datetime").unique())
+
+    @staticmethod
+    def apply(history: History, function: callable, output_schema: HistorySchema = None):
         # Apply a function to each timestamp slice across instruments
-        return history.get(columns=["bid", "ask"]).apply({"timestamp": function})
+        return history.get(columns=["bid", "ask"]).apply({"datetime": function}, output_schema=output_schema)
 
     @staticmethod
     def get(origin: History, idx):
         # Get all quotes at a specific timestamp
-        return origin.get({"timestamp": [idx]}, ["bid", "ask"])
+        return origin.get({"datetime": [idx]}, ["bid", "ask"])
 
     @classmethod
     def iter(cls, origin: History):
-        for idx in origin.index(name="timestamp"):
+        for idx in origin.index(name="datetime"):
             yield cls.get(origin, idx)

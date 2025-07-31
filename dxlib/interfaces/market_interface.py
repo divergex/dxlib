@@ -27,7 +27,7 @@ class MarketInterface(Interface):
         """
         raise NotImplementedError
 
-    def historical(self, symbols: list[str], start: datetime, end: datetime, interval: str, store: InstrumentStore) -> History:
+    def historical(self, symbols: list[str], start: datetime, end: datetime, interval: str, store: InstrumentStore = None) -> History:
         """
         Get the historical price of the instruments.
         """

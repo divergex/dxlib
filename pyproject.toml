@@ -9,7 +9,7 @@ requires-python = ">=3.9"
 authors = [
     { name = "Rafael Zimmer", email = "rzimmerdev@gmail.com" }
 ]
-description = "dxlib description here"
+description = "A library for quantitative finance, with tools for data handling, network interfacing, and mathematical modeling."
 license = { text = "MIT" }
 classifiers = [
     "Programming Language :: Python :: 3",

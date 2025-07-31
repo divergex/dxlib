@@ -4,7 +4,7 @@ from datetime import datetime
 
 from dxlib.strategy.arbitrage.pairs.solver import generalized_arbitrage_signal
 from dxlib.interfaces import MarketInterface
-from dxlib.interfaces.external import yfinance
+import dxlib.interfaces.external.yfinance as yfinance
 
 def convert_symbol(symbol):
     if '=' in symbol:
@@ -17,7 +17,7 @@ def convert_symbol(symbol):
 
 class TestYFinance(unittest.TestCase):
     def setUp(self):
-        self.api: MarketInterface = yfinance.YFinance("d=AQABBKAePWgCEKDPPXmKO5K9lLem9_ddGqcFEgEBAQFwPmhHaB6kxyMA_eMCAA&S=AQAAAlfJsDQw5RqBNL49p1OV1Eg")
+        self.api: MarketInterface = yfinance.YFinance()
         self.api.start()
 
     def tearDown(self):

@@ -18,7 +18,7 @@ class WickReversal(SignalGenerator):
         self.close_high = 1 - close_high * close_multiplier
         self.close_low = 1 + close_low * close_multiplier
 
-    def generate(self, data: pd.DataFrame) -> pd.DataFrame:
+    def generate(self, data: pd.DataFrame, input_schema: HistorySchema) -> pd.DataFrame:
         body = data['close'] - data['open']
         range_ = data['high'] - data['low']
 
@@ -45,6 +45,8 @@ class WickReversal(SignalGenerator):
             'signal': signal
         }, index=data.index)
 
-
-    def output_schema(self, history_schema: HistorySchema):
-        return history_schema
+    @classmethod
+    def output_schema(cls, history_schema: HistorySchema):
+        schema = history_schema.copy()
+        schema.columns = {"signal": Signal}
+        return schema

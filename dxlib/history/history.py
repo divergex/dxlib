@@ -344,15 +344,28 @@ class History(TypeRegistry):
 
         return History(self.history_schema, result)
 
-    def apply(self, func: Dict[str | List[str], callable] | callable, *args, output_schema = None, **kwargs) -> "History":
-        if isinstance(func, dict):
-            data = self.data
+    @staticmethod
+    def dict_reduce(data, item, *args, **kwargs):
+        idx, f = item
+        if len(idx) == 0:
+            return f(data, *args, **kwargs)
+        else:
+            return data.groupby(level=idx, group_keys=False).apply(f, *args, **kwargs)
 
-            for idx, f in func.items():
-                if len(idx) == 0:
-                    data = f(data, *args, **kwargs)
-                else:
-                    data = data.groupby(level=idx, group_keys=False).apply(f, *args, **kwargs)
+    @staticmethod
+    def list_reduce(data, item):
+        f = item[0]
+        args = item[1] if len(item) > 1 else ()
+        kwargs = item[2] if len(item) > 2 else {}
+        return data.apply(f, *args, **kwargs)
+
+    def apply(self, func: Dict[str | List[str], callable] | callable | List[callable], *args, output_schema = None, **kwargs) -> "History":
+        data = self.data
+
+        if isinstance(func, dict):
+            data = reduce(lambda x, y: self.dict_reduce(x, y, *args, **kwargs), func.items(), data)
+        elif isinstance(func, list):
+            data = reduce(self.list_reduce, func, data)
         else:
             data = self.data.apply(func, *args, **kwargs)
 

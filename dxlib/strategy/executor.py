@@ -1,20 +1,33 @@
-from typing import Type, Union, Tuple
+from typing import Type, Union, Tuple, Callable
 
-from dxlib import History
-from dxlib.history.history_view import HistoryView
-from ..core.portfolio import PortfolioHistory, Portfolio
+from dxlib.core.portfolio import PortfolioHistory
+from dxlib.history import History, HistoryView
+from .strategy import Strategy
 from ..interfaces import TradingInterface
 
 
 class Executor:
-    def __init__(self, strategy, interface: TradingInterface):
+    def __init__(self, strategy: Strategy, interface: TradingInterface, context_fn: Callable = None):
         self.strategy = strategy
         self.interface = interface
 
-    def _execute(self, observation, history, history_view: HistoryView):
+        if context_fn is not None:
+            self.context_fn = context_fn
+            self._execute = self._execute_context
+        else:
+            self._execute = self._execute_contextless
+
+    def _execute_context(self, observation, history, history_view: HistoryView):
         history.concat(observation)
-        orders = self.strategy.execute()
+        args, kwargs = self.context_fn(observation, history, history_view)
+        orders = self.strategy.execute(observation, history, history_view, *args, **kwargs)
         self.interface.send(orders.data['order'].values)
+        return orders
+
+    def _execute_contextless(self, observation, history, history_view: HistoryView):
+        history.concat(observation)
+        orders = self.strategy.execute(observation, history, history_view)
+        self.interface.send(orders.data.values.flatten())
         return orders
 
     @property
@@ -30,21 +43,20 @@ class Executor:
             history: History = None,
             ) -> Tuple[History, PortfolioHistory | None]:
         observer = self.market.subscribe(history_view)
-        output_schema = self.strategy.output_schema(self.market.history_schema())
-        observation = None
+        output_schema = self.strategy.output_schema(history_view.history_schema(self.market.history_schema()))
+        result = History(output_schema)
+        portfolio = PortfolioHistory(result.history_schema.copy().index)
 
         if history is None:
             if (observation := next(observer, None)) is None:
                 return History(history_schema=output_schema), None
             history = observation.copy()
-        result = History(output_schema)
 
-        if observation is not None:
-            result = result.concat(
-                self._execute(observation, history, history_view)
-            )
-        portfolio = PortfolioHistory(result.history_schema.copy().index)
-        portfolio.update(observation.data.index, self.account.portfolio())
+            if observation is not None:
+                result = result.concat(
+                    self._execute(observation, history, history_view)
+                )
+                portfolio.update(observation.data.index, self.account.portfolio())
 
         for observation in observer:
             result.concat(

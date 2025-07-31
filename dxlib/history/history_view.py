@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from . import History
+from . import History, HistorySchema
 
 
 class HistoryView(ABC):
@@ -11,7 +11,7 @@ class HistoryView(ABC):
 
     @staticmethod
     @abstractmethod
-    def apply(history: History, function: callable):
+    def apply(history: History, function: callable, output_schema: HistorySchema = None):
         pass
 
     @staticmethod
@@ -26,4 +26,13 @@ class HistoryView(ABC):
 
     @staticmethod
     def price(origin: History, idx: int):
+        pass
+
+    @staticmethod
+    def slice(origin: History, size: int):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def history_schema(history_schema: HistorySchema):
         pass

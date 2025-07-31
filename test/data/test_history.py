@@ -11,7 +11,7 @@ class TestHistoryDto(unittest.TestCase):
 
     def test_history(self):
         data = Mock.large_data()
-        schema = Mock.schema()
+        schema = Mock.large_schema()
 
         history = History(schema, data)
         print(history)

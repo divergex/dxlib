@@ -7,7 +7,7 @@ from dxlib import Instrument, History, Portfolio, InstrumentStore
 from dxlib.data import Storage
 from dxlib.interfaces import MarketInterface, yfinance
 from dxlib.optimizers.mvo import Mvo
-from dxlib.strategy.signal import OrderGenerator
+from dxlib.strategy import OrderGenerator
 
 
 def main():
@@ -25,8 +25,7 @@ def main():
         [
             storage.cached(key, Instrument, get_instrument, symbol)
             for symbol in symbols
-        ],
-        key)
+        ])
     assets = asset_store.values()
 
     end = datetime(2025, 7, 3)

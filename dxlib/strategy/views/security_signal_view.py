@@ -2,8 +2,7 @@ from typing import List
 
 import pandas as pd
 
-from dxlib import History
-from dxlib.history.history_view import HistoryView
+from dxlib.history import History, HistoryView, HistorySchema
 
 
 class SecuritySignalView(HistoryView):
@@ -16,14 +15,14 @@ class SecuritySignalView(HistoryView):
         return len(indices.unique())
 
     @classmethod
-    def _apply_simple(cls, history: History, function: callable):
-        return history.apply({"instruments": function})
+    def _apply_simple(cls, history: History, function: callable, output_schema: HistorySchema):
+        return history.apply({"instruments": function}, output_schema=output_schema)
 
-    def _apply_col(self, history: History, function: callable):
-        return self._apply_simple(history.get(columns=self.columns), function)
+    def _apply_col(self, history: History, function: callable, output_schema: HistorySchema):
+        return self._apply_simple(history.get(columns=self.columns), function, output_schema)
 
-    def apply(self, history: History, function: callable):
-        return self._apply_col(history, function)
+    def apply(self, history: History, function: callable, output_schema: HistorySchema = None):
+        return self._apply_col(history, function, output_schema)
 
     def get(self, origin: History, idx):
         return origin.get({"date": [idx]})
@@ -36,3 +35,8 @@ class SecuritySignalView(HistoryView):
         date = idx.get_level_values("date").unique().item()
         dated_prices = origin.get({"date": [date]})
         return dated_prices.data.reset_index("date")["close"].rename('price')
+
+    def history_schema(self, history_schema: HistorySchema):
+        schema = history_schema.copy()
+        schema.columns = {key: schema.columns[key] for key in self.columns} if self.columns else schema.columns
+        return schema

@@ -17,10 +17,6 @@ class OrderTransaction:
         self.price = price
         self.quantity = quantity
 
-    def __getattr__(self, item):
-        assert hasattr(self.order, item), "Object '%s' has no attribute '%s'" % (self.order.__class__.__name__, item)
-        return getattr(self.order, item)
-
     @property
     def value(self):
         return self.amount * self.price
@@ -30,4 +26,4 @@ class OrderTransaction:
         return self.order.side.value * self.quantity
 
     def __str__(self):
-        return f"OrderTransaction({self.order.security}, {self.price}, {self.quantity})"
+        return f"OrderTransaction({self.order}, {self.price}, {self.quantity})"

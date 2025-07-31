@@ -7,9 +7,10 @@ from dxlib.types import _TYPES
 
 _REGISTRY = {}
 _SERIALIZERS = {
-    pd.DataFrame: lambda df: df.to_dict(orient="tight"),
+    pd.DataFrame: lambda df: df.to_dict("tight"),
     type: lambda data: str(data),
-    ABCMeta: lambda data: str(data)
+    ABCMeta: lambda data: str(data),
+    datetime: lambda data: str(data),
 }
 
 _DESERIALIZERS = {
@@ -41,8 +42,8 @@ class Registry:
 
     @classmethod
     def deserialize(cls, value, expected_type):
-        if registry := _REGISTRY.get(expected_type):
-            return registry.model_validate(value)
+        if registry := _REGISTRY.get(expected_type.__qualname__):
+            return registry.model_validate(value).to_domain()
         elif deserializer := _DESERIALIZERS.get(expected_type):
             return deserializer(value)
         else:

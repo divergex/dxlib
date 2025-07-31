@@ -15,7 +15,7 @@ class OrderEngine:
 
     def trade(self, portfolio: Portfolio, transactions: List[OrderTransaction]) -> Portfolio:
         for transaction in transactions:
-            portfolio.add(transaction.security, transaction.amount)
+            portfolio.add(transaction.order.instrument, transaction.amount)
             portfolio.add(self.default_leg, -transaction.value)
         portfolio.drop_zero()
         return portfolio

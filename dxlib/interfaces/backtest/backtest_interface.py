@@ -19,7 +19,7 @@ class BacktestOrderInterface(OrderInterface):
             if order.is_none():
                 continue
             if isinstance(order.quantity, Size) and order.quantity.is_relative:
-                price = self.context.market_interface.quote(order.security.symbol).item()
+                price = self.context.market_interface.quote(order.instrument).item()
                 if order.quantity.kind == SizeType.PercentOfEquity:
                     equity = self.context.account_interface.equity()
                     quantity = order.quantity.value * equity / price
@@ -94,11 +94,11 @@ class BacktestMarketInterface(MarketInterface):
         return self.context.history.history_schema.copy()
 
 class BacktestInterface(TradingInterface):
-    def __init__(self, history: History, portfolio: Portfolio = None, pricing: HistoryView = None):
+    def __init__(self, history: History, history_view: HistoryView, portfolio: Portfolio = None):
         self.history = history
         self.portfolio = portfolio or Portfolio()
         self.order_engine = OrderEngine()
-        self.pricing = pricing
+        self.pricing = history_view
         assert hasattr(self.pricing, "price"), "Provided `pricing: HistoryView` must contain `price` method if used for backtesting."
 
         super().__init__(
