@@ -67,18 +67,6 @@ class BacktestMarketInterface(MarketInterface):
             security = [Instrument(security) if isinstance(security, str) else security]
         return self.prices[security]
 
-    # def subscribe(self, history_view: HistoryView):
-    #     observer = history_view.iter(self.context.history)
-    #
-    #     for self.observation in observer:
-    #         # self.index = self.observation.data.index
-    #         # prices = self.context.pricing.price(self.context.history, self.index)
-    #         # self.history = self.prices.combine_first(prices)
-    #         # self.prices.update(prices)
-    #         # self.price_history = self.set_price_history(self.price_history, self.index, self.prices)
-    #
-    #         yield self.observation
-
     def history_schema(self) -> HistorySchema:
         return self.context.history.history_schema.copy()
 

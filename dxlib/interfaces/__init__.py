@@ -9,4 +9,4 @@ from .trading_interface import TradingInterface
 from .services import *
 from .external import *
 
-from .backtest import BacktestInterface
+from .mock import BacktestInterface

@@ -1,7 +1,7 @@
 import random
 import unittest
 
-from dxlib.interfaces.backtest import BacktestInterface
+from dxlib.interfaces.mock import BacktestInterface
 from dxlib.market import Order, Side
 from test.data import Mock
 
