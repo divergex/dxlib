@@ -73,7 +73,7 @@ class Portfolio:
     def to_dict(self) -> Dict[Instrument, float]:
         return self.quantities.to_dict()
 
-    def to_frame(self, column_name="quantity", index_name="instruments"):
+    def to_frame(self, column_name="quantity", index_name="instrument"):
         data = self.quantities.to_frame(column_name)
         data.index.name = index_name
         return data

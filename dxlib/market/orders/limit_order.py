@@ -4,9 +4,17 @@ from .order import Order, Side
 
 class LimitOrderFactory:
     @classmethod
-    def create(cls, security, price, quantity, side: Side):
-        return Order(security, security, price, quantity, side)
+    def sized(cls, instrument, price, quantity, side: Side):
+        return Order(instrument, price, quantity, side)
 
     @classmethod
-    def percent_of_equity(cls, security, price, percent, side: Side) -> Order:
-        return Order(security, price, quantity=Size(percent, 'percent_of_equity'), side=side)
+    def bid(cls, instrument, price, quantity = 1):
+        return cls.sized(instrument, price, quantity, Side.BUY)
+
+    @classmethod
+    def ask(cls, instrument, price, quantity = 1):
+        return cls.sized(instrument, price, quantity, Side.SELL)
+
+    @classmethod
+    def percent_of_equity(cls, instrument, price, percent, side: Side) -> Order:
+        return Order(instrument, price, quantity=Size(percent, 'percent_of_equity'), side=side)
