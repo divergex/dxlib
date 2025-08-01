@@ -29,10 +29,6 @@ class HistoryView(ABC):
         pass
 
     @staticmethod
-    def slice(origin: History, size: int):
-        pass
-
-    @staticmethod
     @abstractmethod
     def history_schema(history_schema: HistorySchema):
         pass

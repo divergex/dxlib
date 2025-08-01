@@ -104,11 +104,10 @@ class PortfolioHistory(History):
 
     A portfolio in the context of this library is a collection of positions, that is, the number of each investment instruments held.
     """
-
     def __init__(self,
                  schema_index: Dict[str, Type] = None,
                  data: pd.DataFrame | dict = None):
-        assert "instruments" in list(
+        assert "instrument" in list(
             schema_index.keys()), "Index can not be converted to portfolio type. Must have instruments indexed at some level."
         schema = HistorySchema(
             index=schema_index,
@@ -133,13 +132,13 @@ class PortfolioHistory(History):
         schema = self.history_schema.copy().rename(columns={"quantity": "value"}).set(columns={"value": Number})
         values = History(schema, values.to_frame(name="value"))
 
-        return values.apply({tuple(set(schema.index_names) - {"instruments"}): lambda x: x.sum()})
+        return values.apply({tuple(set(schema.index_names) - {"instrument"}): lambda x: x.sum()})
 
     def insert(self, key: pd.MultiIndex, portfolio: "Portfolio"):
         df = portfolio.to_frame()
         if not df.empty:
-            key = key.droplevel("instruments").unique().item()
-            portfolio = pd.concat({key: df}, names=list(set(self.history_schema.index_names) - {"instruments"}))
+            key = key.droplevel("instrument").unique().item()
+            portfolio = pd.concat({key: df}, names=list(set(self.history_schema.index_names) - {"instrument"}))
             self.data = pd.concat([self.data, portfolio])
 
     def update(self, key: pd.MultiIndex, portfolio: "Portfolio"):
@@ -147,12 +146,12 @@ class PortfolioHistory(History):
         if df.empty:
             return
 
-        key = key.droplevel("instruments").unique().item()
-        index_names = list(set(self.history_schema.index_names) - {"instruments"})
+        key = key.droplevel("instrument").unique().item()
+        index_names = list(set(self.history_schema.index_names) - {"instrument"})
         new_data = pd.concat({key: df}, names=index_names)
 
         if not self.data.empty:
-            to_drop = self.data.index.droplevel("instruments") == key
+            to_drop = self.data.index.droplevel("instrument") == key
             self.data = self.data.loc[~to_drop]
 
         self.data = pd.concat([self.data, new_data])

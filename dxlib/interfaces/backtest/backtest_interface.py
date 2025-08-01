@@ -57,7 +57,7 @@ class BacktestMarketInterface(MarketInterface):
         self.observation = None
         self.base_security = base_security or Instrument("USD")
         self.prices = pd.Series({self.base_security: 1}, name="price")
-        self.price_history = pd.DataFrame()
+        self.history = History()
 
     def quote(self, security: str | Instrument | List[str | Instrument]) -> float | pd.Series:
         if isinstance(security, List) and len(security) > 0:
@@ -67,28 +67,17 @@ class BacktestMarketInterface(MarketInterface):
             security = [Instrument(security) if isinstance(security, str) else security]
         return self.prices[security]
 
-    @staticmethod
-    def set_price_history(price_history, index, prices):
-        base_index = index.droplevel('instruments').unique()
-        securities = prices.index.unique()
-        new_index = pd.MultiIndex.from_product([base_index, securities], names=base_index.names + ['instruments'])
-        prices_mapped = pd.Series(new_index.get_level_values('instruments')).map(prices).values
-        new_data = pd.DataFrame({'close': prices_mapped}, index=new_index)
-        price_history = price_history.drop(index=new_index, errors='ignore')
-        price_history = pd.concat([price_history, new_data])
-        return price_history.sort_index()
-
-    def subscribe(self, history_view: HistoryView):
-        observer = history_view.iter(self.context.history)
-
-        for self.observation in observer:
-            self.index = self.observation.data.index
-            prices = self.context.pricing.price(self.context.history, self.index)
-            self.prices = self.prices.combine_first(prices)
-            self.prices.update(prices)
-            self.price_history = self.set_price_history(self.price_history, self.index, self.prices)
-
-            yield self.observation
+    # def subscribe(self, history_view: HistoryView):
+    #     observer = history_view.iter(self.context.history)
+    #
+    #     for self.observation in observer:
+    #         # self.index = self.observation.data.index
+    #         # prices = self.context.pricing.price(self.context.history, self.index)
+    #         # self.history = self.prices.combine_first(prices)
+    #         # self.prices.update(prices)
+    #         # self.price_history = self.set_price_history(self.price_history, self.index, self.prices)
+    #
+    #         yield self.observation
 
     def history_schema(self) -> HistorySchema:
         return self.context.history.history_schema.copy()

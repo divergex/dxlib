@@ -160,7 +160,7 @@ class YFinance(MarketInterface):
 
         df = pd.DataFrame({
             'datetime': pd.to_datetime(timestamps, unit='s'),
-            'instruments': instrument,
+            'instrument': instrument,
             'close': quote['close'],
             'open': quote['open'],
             'high': quote['high'],
@@ -168,7 +168,7 @@ class YFinance(MarketInterface):
             'volume': quote['volume']
         })
         df['volume'] = df['volume'].astype(float)
-        df.set_index(['datetime', 'instruments'], inplace=True)
+        df.set_index(['datetime', 'instrument'], inplace=True)
         return History(self.history_schema, df)
 
     def historical(self,
