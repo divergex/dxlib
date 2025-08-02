@@ -135,7 +135,7 @@ class YFinance(MarketInterface):
     @property
     def history_schema(self) -> HistorySchema:
         return HistorySchema(
-            index={'datetime': datetime.datetime, 'instruments': Instrument},
+            index={'datetime': datetime.datetime, 'instrument': Instrument},
             columns={
                 'close': float,
                 'open': float,

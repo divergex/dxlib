@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 from dxlib.types import TypeRegistry
 
@@ -14,7 +15,9 @@ class AssetClass(Enum):
 
 
 class Instrument(TypeRegistry):
-    def __init__(self, symbol: str, name: str = None, asset_class: AssetClass = None, tick_size = 1):
+    symbol: str
+
+    def __init__(self, symbol: str, name: Optional[str] = None, asset_class: Optional[AssetClass] = None, tick_size = 1):
         self.symbol = symbol
         self.name = name
         self.asset_class = asset_class

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Iterator, List
+from typing import Iterator, List, Optional
 
 import pandas as pd
 
@@ -15,7 +15,7 @@ class MarketInterface(Interface):
     def stop(self):
         raise NotImplementedError
 
-    def quote(self, symbols: List[str] | str | Instrument | List[Instrument]) -> float | pd.DataFrame:
+    def quote(self, symbols: List[str] | str | Instrument | List[Instrument]) -> pd.Series:
         """
         Get the current price of the instruments.
         """
@@ -27,7 +27,7 @@ class MarketInterface(Interface):
         """
         raise NotImplementedError
 
-    def historical(self, symbols: list[str], start: datetime, end: datetime, interval: str, store: InstrumentStore = None) -> History:
+    def historical(self, symbols: list[str], start: datetime, end: datetime, interval: str, store: Optional[InstrumentStore] = None) -> History:
         """
         Get the historical price of the instruments.
         """

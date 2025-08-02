@@ -1,8 +1,9 @@
 import math
 from numbers import Number
-from typing import Dict, Type, List, Union
+from typing import Dict, Type, List, Union, Optional, Callable
 
 import pandas as pd
+from pandas import Series
 
 from .instruments import Instrument
 from dxlib.history import History, HistorySchema
@@ -13,8 +14,10 @@ def to_tick(x, step):
 
 
 class Portfolio:
-    def __init__(self, quantities: Dict[Instrument, float] = None):
-        self.quantities = pd.Series(quantities) if quantities else pd.Series()
+    quantities: Series
+
+    def __init__(self, quantities: Optional[Dict[Instrument, float]] = None):
+        self.quantities: pd.Series = pd.Series(quantities, dtype=float) if quantities else pd.Series()
 
     def value(self, prices: pd.Series | Dict[Instrument, float]) -> float:
         if isinstance(prices, pd.Series):
@@ -40,12 +43,18 @@ class Portfolio:
                      prices: Union[pd.Series, Dict["Instrument", float]],
                      value: float
                      ) -> "Portfolio":
+        """
+
+        Args:
+            prices:
+            weights:
+            value (float): Total value of the portfolio.
+        """
         weights = pd.Series(weights)
         prices = pd.Series(prices)
 
         cls.ensure_index(weights, prices)
 
-        weights = weights / weights.sum()
         quantities = weights * value / prices
 
         return cls(quantities.to_dict())
@@ -67,8 +76,10 @@ class Portfolio:
                     ):
         return cls(quantities.to_dict())
 
-    def get(self, security: Instrument, default: float = 0) -> float:
-        return self.quantities.get(security, default)
+    def get(self, security: Instrument, default: float = 0.0) -> float:
+        val = self.quantities.get(security, default)
+        assert isinstance(val, float)
+        return val
 
     def to_dict(self) -> Dict[Instrument, float]:
         return self.quantities.to_dict()
@@ -86,11 +97,11 @@ class Portfolio:
         return self
 
     def add(self, security: Instrument, quantity: float) -> "Portfolio":
-        self.quantities[security] = self.quantities.get(security, 0) + quantity
+        self.quantities[security] = self.get(security) + quantity
         return self
 
     def drop_zero(self):
-        self.quantities = self.quantities[self.quantities != 0]
+        self.quantities = self.quantities.loc[self.quantities != 0]
 
     @property
     def securities(self) -> List[Instrument]:
@@ -105,8 +116,8 @@ class PortfolioHistory(History):
     A portfolio in the context of this library is a collection of positions, that is, the number of each investment instruments held.
     """
     def __init__(self,
-                 schema_index: Dict[str, Type] = None,
-                 data: pd.DataFrame | dict = None):
+                 schema_index: Dict[str, Type],
+                 data: Optional[pd.DataFrame | dict] = None):
         assert "instrument" in list(
             schema_index.keys()), "Index can not be converted to portfolio type. Must have instruments indexed at some level."
         schema = HistorySchema(
@@ -122,7 +133,7 @@ class PortfolioHistory(History):
             data=history.data,
         )
 
-    def apply(self, func: Dict[str | List[str], callable] | callable, *args, **kwargs) -> "PortfolioHistory":
+    def apply(self, func: Dict[str | List[str], Callable] | Callable, *args, **kwargs) -> "PortfolioHistory":
         return self.from_history(
             super().apply(func, *args, **kwargs)
         )
@@ -141,7 +152,7 @@ class PortfolioHistory(History):
             portfolio = pd.concat({key: df}, names=list(set(self.history_schema.index_names) - {"instrument"}))
             self.data = pd.concat([self.data, portfolio])
 
-    def update(self, key: pd.MultiIndex, portfolio: "Portfolio"):
+    def update(self, key: pd.MultiIndex | pd.Index, portfolio: "Portfolio"):
         df = portfolio.to_frame()
         if df.empty:
             return

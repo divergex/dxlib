@@ -12,16 +12,16 @@ class OrderGenerator:
         self.percent = percent
 
     def to_order(self, row):
-        return row.drop("instruments").map(
+        return row.drop("instrument").map(
             lambda v: None if v.to_side() is Side.NONE
-            else OrderEngine.market.percent_of_equity(row["instruments"], self.percent, v.to_side())
+            else OrderEngine.market.percent_of_equity(row["instrument"], self.percent, v.to_side())
         )
 
     def generate(self, signals: History) -> History:
         columns = signals.columns
-        if 'instruments' not in signals.columns and 'instruments' in signals.indices:
-            signals['instruments'] = signals.index('instruments')
-        assert "instruments" in signals, ("This OrderGenerator requires a instruments per signal. "
+        if 'instrument' not in signals.columns and 'instrument' in signals.indices:
+            signals['instrument'] = signals.index('instrument')
+        assert "instrument" in signals, ("This OrderGenerator requires a instruments per signal. "
                                           "Try passing with `signals.reset_index('instruments')` if 'instruments' is in the index.")
         orders = signals.apply([(self.to_order, (), {"axis":1}), (lambda x: x.dropna(),)],
                                output_schema=HistorySchema(

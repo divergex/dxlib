@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import Iterable, Callable, Optional, Any
+
+import pandas as pd
 
 from . import History, HistorySchema
 
@@ -11,7 +14,7 @@ class HistoryView(ABC):
 
     @staticmethod
     @abstractmethod
-    def apply(history: History, function: callable, output_schema: HistorySchema = None):
+    def apply(history: History, function: Callable, output_schema: Optional[HistorySchema] = None):
         pass
 
     @staticmethod
@@ -21,14 +24,14 @@ class HistoryView(ABC):
 
     @staticmethod
     @abstractmethod
-    def iter(origin: History):
+    def iter(origin: History) -> Iterable[History]:
         pass
 
     @staticmethod
-    def price(origin: History, idx: int):
-        pass
+    def price(observation: History) -> pd.Series:
+        raise NotImplementedError("Pricing is not implemented. Perhaps you are backtesting with an invalid HistoryView?")
 
     @staticmethod
     @abstractmethod
-    def history_schema(history_schema: HistorySchema):
+    def history_schema(history_schema: HistorySchema) -> HistorySchema:
         pass

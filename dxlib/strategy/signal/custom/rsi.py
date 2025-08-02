@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from dxlib.core import Signal
+from dxlib.market import Signal
 from dxlib.history import HistorySchema
 from ..signal_generator import SignalGenerator
 
@@ -14,16 +14,16 @@ def fast_rsi(values: np.ndarray, window: int):
 
         for i in range(1, window + 1):
             delta = values[i, col] - values[i - 1, col]
-            gains[i - 1] = max(delta, 0)
-            losses[i - 1] = max(-delta, 0)
+            gains[i - 1] = np.maximum(delta, 0)
+            losses[i - 1] = np.maximum(-delta, 0)
 
         avg_gain = np.mean(gains)
         avg_loss = np.mean(losses)
 
         for i in range(window + 1, values.shape[0]):
             delta = values[i, col] - values[i - 1, col]
-            gain = max(delta, 0)
-            loss = max(-delta, 0)
+            gain = np.maximum(delta, 0)
+            loss = np.maximum(-delta, 0)
 
             avg_gain = (avg_gain * (window - 1) + gain) / window
             avg_loss = (avg_loss * (window - 1) + loss) / window
@@ -69,10 +69,17 @@ class Rsi(SignalGenerator):
         return rsi.tail(self.period).fillna(self.upper)
 
     def score(self, data: pd.DataFrame):
-        group = data.tail(self.period + self.window).to_numpy(dtype=np.float64)
-        rsi = fast_rsi(group, self.window)
-        rsi = pd.DataFrame(rsi, index=data.tail(self.period + self.window).index, columns=data.columns)
-        return rsi.tail(self.period).fillna(self.upper)
+        required_len = self.period + self.window
+        if len(data) < required_len:
+            index = data.index[-self.period:] if len(data) >= self.period else data.index
+            fill_shape = (len(index), data.shape[1])
+            return pd.DataFrame(np.full(fill_shape, self.upper, dtype=np.float64), index=index, columns=data.columns)
+
+        subset = data.tail(required_len)
+        values = subset.to_numpy(dtype=np.float64)
+        rsi = fast_rsi(values, self.window)
+        rsi_df = pd.DataFrame(rsi, index=subset.index, columns=data.columns)
+        return rsi_df.tail(self.period).fillna(self.upper)
 
     @classmethod
     def output_schema(cls, history_schema: HistorySchema):

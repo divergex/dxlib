@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Optional
 
 import numpy as np
 import pandas as pd
@@ -21,7 +21,7 @@ class History(TypeRegistry):
     """
     def __init__(self,
                  history_schema: HistorySchema | dict = None,
-                 data: pd.DataFrame | dict | list = None):
+                 data: Optional[pd.DataFrame | dict | list] = None):
         """
         A history is a collection of dense mutable data points.
 

@@ -20,20 +20,21 @@ def main():
     storage = Storage()
     store = "yfinance"
 
-    def run_backtest(range_multiplier, close_multiplier):
+    strat = SignalStrategy(WickReversal(range_multiplier=0.4, close_multiplier=0.7), OrderGenerator())
+    view = SecuritySignalView(time_index="datetime")
+    
+    def run_backtest():
         history = storage.cached(store, History, api.historical, symbols, start, end)
-        history_view = SecuritySignalView()
 
-        strat = SignalStrategy(WickReversal(range_multiplier=range_multiplier, close_multiplier=close_multiplier), OrderGenerator())
         portfolio = Portfolio({Instrument("USD"): 1000})
-        interface = BacktestInterface(history, history_view, portfolio)
+        interface = BacktestInterface(history, view, portfolio)
         executor = Executor(strat, interface)
-        orders, portfolio = executor.run(history_view)
-        value = portfolio.value(interface.price_history, "close")
+        orders, portfolio = executor.run(view, interface.iter())
+        value = portfolio.value(interface.market.price_history.data, "close")
         final_value = value.data.iloc[-1].item()
         return final_value
 
-    print("PnL", run_backtest(0.4, 0.7))
+    print("PnL", run_backtest())
 
 if __name__ == "__main__":
     main()

@@ -31,7 +31,7 @@ class InstrumentStore(TypeRegistry):
     def list(self, symbols: List[str]) -> List[Instrument]:
         return [self.get(symbol) for symbol in symbols]
 
-    def setdefault(self, symbol: str | Instrument, default):
+    def setdefault(self, symbol: str | Instrument, default: Instrument):
         if isinstance(symbol, str):
             return self.instruments.setdefault(symbol, default)
         return symbol

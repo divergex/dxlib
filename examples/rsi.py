@@ -30,8 +30,10 @@ def main():
     print(history.head())
 
     strategy = ss.SignalStrategy(ss.custom.Rsi(), OrderGenerator())
-    executor = Executor(strategy, BacktestInterface(history, history_view := views.SecuritySignalView(["close"])))
-    print(executor.run(history_view, history))
+    view = views.SecuritySignalView("datetime", ["close"])
+    interface = BacktestInterface(history, view)
+    executor = Executor(strategy, interface)
+    print(executor.run(view, interface.iter()))
 
 if __name__ == "__main__":
     main()
