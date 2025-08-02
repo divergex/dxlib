@@ -4,7 +4,7 @@ import pandas as pd
 
 from dxlib import HistorySchema
 from dxlib.core.indicators import RSI
-from dxlib.core.signal import Signal
+from dxlib.market.signal import Signal
 from dxlib.interfaces import MockMarket
 from dxlib.strategy.strategy import SignalStrategy
 
@@ -24,7 +24,7 @@ class TestRsi(unittest.TestCase):
         # get last index
         observation = self.history.data.index[-1]
         observation = self.history.get(index={"date": [observation]})
-        result = rsi.execute(observation, self.history.get(columns=["close"]))
+        result = rsi.execute(,,
         data = result.data
         data = data.dropna()
 

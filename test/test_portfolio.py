@@ -12,7 +12,7 @@ class TestPortfolio(unittest.TestCase):
         schema = Mock().schema
 
         quantitites = pd.DataFrame(data={"weights1": [1.0], "weights2": [None, 2.0]},
-            index=pd.MultiIndex.from_tuples([("2021-01-01", "AAPL"), ("2021-01-02", "AAPL")], names=["date", "security"]),
+            index=pd.MultiIndex.from_tuples([("2021-01-01", "AAPL"), ("2021-01-02", "AAPL")], names=["date", "instruments"]),
             columns=["inventory1", "inventory2"])
 
         portfolio = dx.Portfolio(index=schema.index, inventories=["inventory1"], data=quantitites)
@@ -27,16 +27,16 @@ class TestPortfolio(unittest.TestCase):
         schema = Mock().schema
 
         quantitites = pd.DataFrame(data={"inventory1": [1.0, 1.5], "inventory2": [3.2, 2.0]},
-            index=pd.MultiIndex.from_tuples([("2021-01-01", "AAPL"), ("2021-01-02", "AAPL")], names=["date", "security"]),
+            index=pd.MultiIndex.from_tuples([("2021-01-01", "AAPL"), ("2021-01-02", "AAPL")], names=["date", "instruments"]),
             columns=["inventory1", "inventory2"])
 
         portfolio = dx.Portfolio(index=schema.index, inventories=["inventory1"], data=quantitites)
         print(portfolio)
 
         prices = History(Mock().schema, Mock().tight_data)
-        weights = portfolio.weights(prices, "security")
+        weights = portfolio.weights(prices, "instruments")
 
-        returns = prices.apply({"security": lambda df: df.pct_change()})
+        returns = prices.apply({"instruments": lambda df: df.pct_change()})
         portfolio_returns = weights.apply_on(returns.data['open'], lambda df, other: df.mul(other, axis=0)).data
         portfolio_returns.columns = ["returns"]
 
@@ -47,7 +47,7 @@ class TestPortfolio(unittest.TestCase):
 
         quantitites = pd.DataFrame(data={"inventory1": [1.0, 1.5], "inventory2": [3.2, 2.0]},
                                    index=pd.MultiIndex.from_tuples([("2021-01-01", "AAPL"), ("2021-01-02", "AAPL")],
-                                                                   names=["date", "security"]),
+                                                                   names=["date", "instruments"]),
                                    columns=["inventory1", "inventory2"])
 
         portfolio = dx.Portfolio(index=schema.index, inventories=["inventory1"], data=quantitites)

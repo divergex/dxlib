@@ -20,7 +20,7 @@ class TestInvestingCom(unittest.TestCase):
         self.assertIsInstance(result, History)
         self.assertEqual(252, len(result))
         # Check if
-        self.assertEqual(["AAPL"], result.levels("security"))
+        self.assertEqual(["AAPL"], result.levels("instruments"))
         print(result)
 
     def test_multiple_symbols(self):
@@ -34,4 +34,4 @@ class TestInvestingCom(unittest.TestCase):
         self.assertIsInstance(result, History)
         self.assertEqual(504, len(result))
         # Check if
-        self.assertEqual(["AAPL", "MSFT"], result.levels("security"))
+        self.assertEqual(["AAPL", "MSFT"], result.levels("instruments"))

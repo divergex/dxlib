@@ -13,7 +13,7 @@ except ImportError as e:
 
 from dxlib.interfaces import market_interface
 from dxlib.history import History, HistorySchema
-from dxlib.core import Security
+from dxlib.core import Instrument, InstrumentStore
 
 
 class InvestingCom(market_interface.MarketInterface):
@@ -70,7 +70,7 @@ class InvestingCom(market_interface.MarketInterface):
     @property
     def history_schema(self):
         return HistorySchema(
-            index={'date': datetime.datetime, 'security': Security},
+            index={'date': datetime.datetime, 'instruments': Instrument},
             columns={
                 'close': float,
                 'open': float,
@@ -94,7 +94,7 @@ class InvestingCom(market_interface.MarketInterface):
 
         data = pd.DataFrame({
             'date': pd.to_datetime(response['t'], unit='s'),
-            'security': params['symbol'],
+            'instruments': params['symbol'],
             'close': response['c'],
             'open': response['o'],
             'high': response['h'],
@@ -102,7 +102,7 @@ class InvestingCom(market_interface.MarketInterface):
             'volume': response['v']
         })
 
-        data.set_index(['date', 'security'], inplace=True)
+        data.set_index(['date', 'instruments'], inplace=True)
 
         return History(schema, data)
 
@@ -136,7 +136,8 @@ class InvestingCom(market_interface.MarketInterface):
                    symbols: List[str] | str,
                    start: datetime.datetime,
                    end: datetime.datetime,
-                   interval: Literal[1, 5, 15, 30, 60, 'D', 'W', 'M'] = 'D'
+                   interval: Literal[1, 5, 15, 30, 60, 'D', 'W', 'M'] = 'D',
+                   store: InstrumentStore = None
                    ):
         return self._historical({
             'symbols': symbols if isinstance(symbols, list) else [symbols],

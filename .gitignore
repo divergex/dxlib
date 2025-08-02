@@ -3,6 +3,9 @@
 **/__pycache__/
 **/.cache/
 *.egg-info/
-/tutorials/.dx/
+/examples/.dx/
 .vscode/
 launch.json
+dist/
+
+*.h5

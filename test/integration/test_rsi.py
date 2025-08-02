@@ -26,6 +26,6 @@ class TestRsi(unittest.TestCase):
         result = executor.run(self.api.market_interface.history(params))
 
         self.assertEqual(result.schema, self.output_schema)
-        signal = result.get(index={"date": ["2020-01-22"], "security": ["AAPL"]})
+        signal = result.get(index={"date": ["2020-01-22"], "instruments": ["AAPL"]})
 
         self.assertEqual(Signal.SELL, signal.data["signal"].values[0])

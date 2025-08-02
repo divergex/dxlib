@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from dxlib import Signal
+from dxlib.core import Signal
+from dxlib.history import HistorySchema
 from ..signal_generator import SignalGenerator
 
 
@@ -44,11 +45,12 @@ class Rsi(SignalGenerator):
 
         assert (0 <= lower <= 1) and (0 <= upper <= 1) and (lower < upper)
 
-    def generate(self, data: pd.DataFrame):
+    def generate(self, data: pd.DataFrame, history_schema: HistorySchema):
         score = self.score(data)
         conditions = [score < self.lower, score > self.upper]
         choices = [self.down, self.up]
-        return pd.DataFrame(np.select(conditions, choices, default=Signal.HOLD), index=score.index, columns=score.columns)
+        output_schema = self.output_schema(history_schema)
+        return pd.DataFrame(np.select(conditions, choices, default=Signal.HOLD), index=score.index, columns=output_schema.column_names)
 
     def _score(self, data: pd.DataFrame):
         group = data.tail(self.period + self.window)
@@ -73,5 +75,7 @@ class Rsi(SignalGenerator):
         return rsi.tail(self.period).fillna(self.upper)
 
     @classmethod
-    def output_schema(cls, observation):
-        return observation.history_schema.copy()
+    def output_schema(cls, history_schema: HistorySchema):
+        schema = history_schema.copy()
+        schema.columns = {column: Signal for column in schema.column_names}
+        return schema

@@ -3,13 +3,13 @@ import unittest
 import pandas as pd
 
 from dxlib import History, HistorySchema, Executor, Strategy
-from test.mock_data import Mock
+from test.data import Mock
 
 
 class TestExecutor(unittest.TestCase):
     def setUp(self):
         self.output_schema = HistorySchema(
-            index={"security": str, "date": pd.Timestamp},
+            index={"instruments": str, "date": pd.Timestamp},
             columns={"open": float, "close": float},
         )
 

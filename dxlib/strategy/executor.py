@@ -1,28 +1,65 @@
-from typing import Type, Union
+from typing import Type, Union, Tuple, Callable, Iterator
 
-from dxlib import History
-from .history_view import HistoryView
+from dxlib.core.portfolio import PortfolioHistory
+from dxlib.history import History, HistoryView
+from .strategy import Strategy
+from ..interfaces import TradingInterface
 
 
 class Executor:
-    def __init__(self, strategy):
+    def __init__(self, strategy: Strategy, interface: TradingInterface, context_fn: Callable = None):
         self.strategy = strategy
+        self.interface = interface
 
-    def run(self, origin: History, history_view: Union[Type[HistoryView], HistoryView]):
-        observer = history_view.iter(origin)
+        if context_fn is not None:
+            self.context_fn = context_fn
+            self._execute = self._execute_context
+        else:
+            self._execute = self._execute_contextless
 
-        if (observation := next(observer, None)) is None:
-            return History(history_schema=self.strategy.output_schema(origin))
+    def _execute_context(self, observation, history, history_view: HistoryView):
+        history.concat(observation)
+        context = self.context_fn(observation, history, history_view)
+        orders = self.strategy.execute(observation, history, history_view, context)
+        self.interface.send(orders.data.values.flatten())
+        return orders
 
-        history = observation.copy()
-        result = History(history_schema=self.strategy.output_schema(observation)).concat(
-            self.strategy.execute(observation, history, history_view)
-        )
+    def _execute_contextless(self, observation, history, history_view: HistoryView):
+        history.concat(observation)
+        orders = self.strategy.execute(observation, history, history_view)
+        self.interface.send(orders.data.values.flatten())
+        return orders
+
+    @property
+    def market(self):
+        return self.interface.market_interface
+
+    @property
+    def account(self):
+        return self.interface.account_interface
+
+    def run(self,
+            history_view: Union[Type[HistoryView], HistoryView],
+            observer: Iterator[History],
+            history: History = None,
+            ) -> Tuple[History, PortfolioHistory | None]:
+        output_schema = self.strategy.output_schema(history_view.history_schema(self.market.history_schema()))
+        result = History(output_schema)
+        portfolio = PortfolioHistory(result.history_schema.copy().index)
+
+        if history is None:
+            if (observation := next(observer, None)) is None:
+                return History(history_schema=output_schema), None
+            history = observation.copy()
+            result = result.concat(
+                self._execute(observation, history, history_view)
+            )
+            portfolio.update(observation.data.index, self.account.portfolio())
 
         for observation in observer:
-            history.concat(observation)
-            res = self.strategy.execute(observation, history, history_view)
             result.concat(
-                res
+                self._execute(observation, history, history_view)
             )
-        return result
+            portfolio.update(observation.data.index, self.account.portfolio())
+
+        return result, portfolio

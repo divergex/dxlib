@@ -1,12 +1,13 @@
 import hashlib
 import os
 import pickle
-from typing import TypeVar, Type, Any
+import tempfile
+from typing import TypeVar, Type, Callable, Any
 
 import h5py
 import pandas as pd
 
-from .registry import RegistryBase
+from .registry import Registry
 from .serializable import Serializable
 
 
@@ -59,6 +60,8 @@ class Storage:
             KeyError: If the key is not present in the storage unit.
         """
         cache_path = self._path(storage)
+        # ensure path exists
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
 
         with h5py.File(cache_path, 'r') as f:
             obj_data = f.get(key)
@@ -67,6 +70,14 @@ class Storage:
             data = obj_data[()].decode('utf-8')
 
             return obj_type.model_validate_json(data) if obj_type is not None else data
+
+    def is_writable(self):
+        try:
+            testfile = tempfile.TemporaryFile(dir=self.cache_dir)
+            testfile.close()
+            return True
+        except (OSError, PermissionError):
+            return False
 
     def store(self, storage: str, key: str, data: Serializable, overwrite: bool = False):
         """
@@ -104,14 +115,35 @@ class Storage:
         data = pickle.dumps((args, kwargs))
         return hashlib.sha256(data).hexdigest()
 
+    def exists(self,
+               storage: str,
+               func: Callable,
+               *args,
+               hash_function: Callable[[str, Any], str] = None,
+               **kwargs,
+               ):
+        func_name = func.__qualname__
+        key = hash_function(func_name, *args, **kwargs) if hash_function else self._hash(func_name, *args, **kwargs)
+        cache_path = self._path(storage)
+
+        try:
+            with h5py.File(cache_path, 'r') as f:
+                if key in f:
+                    return True
+            return False
+        except (OSError, KeyError):
+            return False
+
+
     def cached(self,
                storage: str,
+               expected_type: Type[T],
                func: callable,
-               expected_type: Any,
                *args,
-               hash_function: callable = None,
-               **kwargs) -> Any:
-        model = RegistryBase.get_registry(expected_type)
+               hash_function: Callable = None,
+               **kwargs
+               ) -> T:
+        model = Registry.get(expected_type)
 
         func_name = func.__qualname__
         key = hash_function(func_name, *args, **kwargs) if hash_function else self._hash(func_name, *args, **kwargs)
@@ -120,7 +152,8 @@ class Storage:
             return self.load(storage, key, model).to_domain()
         except (KeyError, FileNotFoundError):
             obj = func(*args, **kwargs)
-            self.store(storage, key, model.from_domain(obj), overwrite=True)  # None.
+            if self.is_writable():
+                self.store(storage, key, model.from_domain(obj), overwrite=True)  # None.
             return obj
 
     # endregion

@@ -1,16 +1,18 @@
 import datetime
+import json
+import re
 
 import httpx
 import pandas as pd
 
 from typing import Dict, Any, List
-from dxlib.interfaces import market_interface
+from dxlib.interfaces import MarketInterface
 from dxlib.history import History, HistorySchema
-from dxlib.core import Security
+from dxlib.core import Instrument, InstrumentStore
 
 
-class YFinance(market_interface.MarketInterface):
-    def __init__(self, cookie = None):
+class YFinance(MarketInterface):
+    def __init__(self, cookie=None):
         self.cookie = cookie
         self.cookies = {
             "A1": self.cookie,
@@ -21,22 +23,50 @@ class YFinance(market_interface.MarketInterface):
         self.client = None
 
     def start(self):
-        self.client = httpx.Client(headers=self.headers, cookies=self.cookies)
+        self.client = httpx.Client(headers=self.headers, cookies=self.cookies, follow_redirects=True, timeout=10)
+        self._refresh_cookies_and_crumb()
+
+    def stop(self):
+        self.client.close()
+        self.client = None
+
+    def _refresh_cookies_and_crumb(self, symbol="AAPL"):
+        """
+        Fetch the quote page HTML, update cookies from response,
+        and parse the crumb token from embedded JSON.
+        """
+        url = f"https://finance.yahoo.com/quote/{symbol}"
+        r = self.client.get(url)
+        r.raise_for_status()
+
+        # Cookies are managed automatically by httpx client via r.cookies,
+        # so no manual cookie update needed here unless you want to inspect.
+
+        m = re.search(r'"crumb"\s*:\s*"([^"]+)"', r.text)
+        if m:
+            crumb = m.group(1)
+            self._crumb = crumb
+        else:
+            raise RuntimeError("No crumb found in HTML")
 
     @property
     def headers(self) -> Dict[str, str]:
         return {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/122.0.0.0 Safari/537.36"
-            )
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": "https://finance.yahoo.com/",
+            "Sec-Fetch-Site": "same-origin",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Dest": "document",
+            "Sec-CH-UA": '"Chromium";v="138", "Brave";v="138", "Not)A;Brand";v="8"',
+            "Sec-CH-UA-Mobile": "?0",
+            "Sec-CH-UA-Platform": '"Linux"',
         }
 
     @property
     def base_url(self) -> str:
-        # quoteSummary/EURUSD=X?modules=price
-        return "https://query1.finance.yahoo.com"
+        return "https://query2.finance.yahoo.com"
 
     def crumb(self):
         if self._crumb:
@@ -84,7 +114,6 @@ class YFinance(market_interface.MarketInterface):
         return df
 
     def quote(self, symbols):
-        assert self.cookie is not None, "This method requires loading cookies with `YFinance(cookie)`."
         assert self.client, "Start the Api instance first."
         return self._format_quote(self._quote(symbols))
 
@@ -94,31 +123,30 @@ class YFinance(market_interface.MarketInterface):
             "interval": interval,
             "period1": str(start),
             "period2": str(end),
-            "events": "capitalGain|div|split",
-            "formatted": "true",
-            "includeAdjustedClose": "true",
+            "crumb": self.crumb(),
             "lang": "en-US",
-            "region": "US"
+            "region": "US",
+            "formatted": "false",
         }
-        r = self.client.get(url, params=params)
+        r = self.client.get(url, params=params, timeout=10)
         r.raise_for_status()
         return r.json()
 
     @property
     def history_schema(self) -> HistorySchema:
         return HistorySchema(
-            index={'date': datetime.datetime, 'security': Security},
+            index={'datetime': datetime.datetime, 'instruments': Instrument},
             columns={
                 'close': float,
                 'open': float,
                 'high': float,
                 'low': float,
-                'volume': int
+                'volume': float
             }
         )
 
     def _format_history(self,
-                        symbol: str,
+                        instrument: Instrument,
                         response: Dict[str, Any]
                         ) -> History:
         result = response['chart']['result'][0]
@@ -131,38 +159,72 @@ class YFinance(market_interface.MarketInterface):
             return History(self.history_schema, df)
 
         df = pd.DataFrame({
-            'date': pd.to_datetime(timestamps, unit='s'),
-            'security': symbol,
+            'datetime': pd.to_datetime(timestamps, unit='s'),
+            'instrument': instrument,
             'close': quote['close'],
             'open': quote['open'],
             'high': quote['high'],
             'low': quote['low'],
             'volume': quote['volume']
         })
-        df.set_index(['date', 'security'], inplace=True)
+        df['volume'] = df['volume'].astype(float)
+        df.set_index(['datetime', 'instrument'], inplace=True)
         return History(self.history_schema, df)
 
     def historical(self,
-                   symbols: List[str] | str,
+                   symbols: List[str] | str | Instrument | List[Instrument],
                    start: datetime.datetime,
                    end: datetime.datetime,
-                   interval: str = '1d'
+                   interval: str = '1d',
+                   store: InstrumentStore = None,
                    ) -> History:
         assert self.client, "Start the Api instance first."
-        symbols = symbols if isinstance(symbols, list) else [symbols]
+        store = store or InstrumentStore()
+        if isinstance(symbols, list):
+            instruments = [store.setdefault(symbol, Instrument(symbol)) for symbol in symbols]
+        else:
+            instruments = [store.setdefault(symbols, Instrument(symbols))]
         history = History(history_schema=self.history_schema)
 
-        for symbol in symbols:
+        for instrument in instruments:
             response = self._historical(
-                symbol,
+                instrument.symbol,
                 int(start.timestamp()),
                 int(end.timestamp()),
                 interval
             )
-            history.extend(self._format_history(symbol, response))
+            history.extend(self._format_history(instrument, response))
 
         return history
 
-    def stop(self):
-        self.client.close()
-        self.client = None
+    def _symbols(self, query: str, crumb=None, version="v1", lang="en-US") -> Dict[str, Any]:
+        # crumb = crumb or self.crumb()
+        url = f"{self.base_url}/{version}/finance/search"
+        # quotesQueryId=tss_match_phrase_query&multiQuoteQueryId=multi_quote_single_token_query
+        # enablePrivateCompany=true
+        # enableLists=false
+        params = {
+            "q": query,
+            "crumb": crumb,
+            "quotesCount": 10,
+            "quotesQueryId": "tss_match_prase_query",
+            "multiQuotesQueryId": "multi_quote_single_token_query",
+            "enablePrivateCompany": "true",
+            "enableLists": "false",
+            "lang": lang,
+            "region": "US"
+        }
+        r = self.client.get(url, params=params)
+        r.raise_for_status()
+        return r.json()
+
+    @staticmethod
+    def format_symbols(response: Dict[str, Any]):
+        quotes = response["quotes"]
+        symbols = []
+        for quote in quotes:
+            symbols.append(quote["symbol"])
+        return symbols
+
+    def symbols(self, query):
+        return self.format_symbols(self._symbols(query))

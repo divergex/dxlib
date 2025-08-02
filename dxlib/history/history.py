@@ -1,4 +1,3 @@
-import os
 from functools import reduce
 from typing import Dict, List, Union
 
@@ -15,7 +14,7 @@ class History(TypeRegistry):
     A history is a term used to describe a collection of data points.
 
     A history in the context of this library is extended to include the concept of a time series.
-    Usually the data points are indexed by time and sometimes by a security.
+    Usually the data points are indexed by time and sometimes by a instruments.
 
     The main purpose of a history is to provide common methods to manipulate and analyze the data, as well as context.
     This is useful for easily storing, retrieving, backtesting and networking data.
@@ -48,7 +47,10 @@ class History(TypeRegistry):
         if isinstance(data, pd.DataFrame):
             data: pd.DataFrame = data
         elif isinstance(data, dict):
-            data: pd.DataFrame = pd.DataFrame.from_dict(data, orient="tight")
+            try:
+                data: pd.DataFrame = pd.DataFrame.from_dict(data, orient="tight")
+            except KeyError:
+                raise ValueError("Data must be of the pandas format 'tight'.")
         elif isinstance(data, list):
             data: pd.DataFrame = pd.DataFrame(data)
         elif data is None:
@@ -57,20 +59,25 @@ class History(TypeRegistry):
         else:
             raise TypeError("Invalid data type.")
 
-        # test if self.data index have correct names
-        self.data = self.validate(data)
+        # test if self.data index is in accordance to schema
+        self.data: pd.DataFrame = self.validate(data)
 
     def validate(self, data):
         if self.history_schema is not None and data is not None:
             if self.history_schema.index and self.history_schema.index.keys() != set(data.index.names):
                 raise ValueError("The index names do not match the schema.")
 
+        if self.history_schema.columns.keys() != set(data.columns):
+            raise ValueError("The column names do not match the schema.",
+                             "Expected: " + ", ".join(self.history_schema.columns.keys()),
+                             "Actual: " + ", ".join(data.columns))
+
         for col, expected_type in self.history_schema.columns.items():
-            if col not in data.columns:
-                raise ValueError(f"The column name '{col}' is not present in the data.")
-            is_valid = validate_series_dtype(data[col], expected_type) if expected_type is not None else True
-            if not is_valid:
-                raise ValueError(f"The column name '{col}' is not of the expected schema type.")
+            if expected_type is None:
+                continue
+            if not validate_series_dtype(data[col], expected_type):
+                raise ValueError(f"The column '{col}' is not of the expected type in the schema.")
+
         return data
 
     # region Abstract Properties
@@ -116,7 +123,7 @@ class History(TypeRegistry):
         else:
             return {name: self.levels(name) for name in (names if names else self.indices)}
 
-    def index(self, name: str) -> pd.Index:
+    def index(self, name: str | None) -> pd.Index:
         """
         Get the index by name.
 
@@ -129,7 +136,7 @@ class History(TypeRegistry):
         return self.data.index.get_level_values(name)
 
     @property
-    def indices(self):
+    def indices(self) -> List[str]:
         """
         Get the indices of the history.
 
@@ -231,7 +238,7 @@ class History(TypeRegistry):
             return v.item()
         return v
 
-    def get(self, index: Dict[str, slice | list] = None, columns: List[str] | str = None, raw=False) -> Union["History", pd.DataFrame]:
+    def get(self, index: Dict[str, slice | list] = None, columns: List[str] | str = None, raw=False) -> "History":
         """
         Get a subset of the history, given values or a slice of desired index values for each index.
 
@@ -291,7 +298,7 @@ class History(TypeRegistry):
         self.data.update(values)
         self.data = pd.concat([self.data, values], sort=False).groupby(level=self.data.index.names).first()
 
-    def op(self,
+    def on(self,
            other: "History",
            columns: List[any],
            other_columns: List[any],
@@ -337,30 +344,47 @@ class History(TypeRegistry):
 
         return History(self.history_schema, result)
 
-    def apply_on(self, other, func, *args, **kwargs):
-        return History(self.history_schema,
-                       func(self.data, other.data if isinstance(other, History) else other, *args, **kwargs))
+    @staticmethod
+    def dict_reduce(data, item, *args, **kwargs):
+        idx, f = item
+        if len(idx) == 0:
+            return f(data, *args, **kwargs)
+        else:
+            return data.groupby(level=idx, group_keys=False).apply(f, *args, **kwargs)
 
-    def apply(self, func: Dict[str, callable] | callable, *args, **kwargs) -> "History":
+    @staticmethod
+    def list_reduce(data, item):
+        f = item[0]
+        args = item[1] if len(item) > 1 else ()
+        kwargs = item[2] if len(item) > 2 else {}
+        return data.apply(f, *args, **kwargs)
+
+    def apply(self, func: Dict[str | List[str], callable] | callable | List[callable], *args, output_schema = None, **kwargs) -> "History":
+        data = self.data
+
         if isinstance(func, dict):
-            data = self.data
+            data = reduce(lambda x, y: self.dict_reduce(x, y, *args, **kwargs), func.items(), data)
+        elif isinstance(func, list):
+            data = reduce(self.list_reduce, func, data)
+        else:
+            data = self.data.apply(func, *args, **kwargs)
 
-            for idx, f in func.items():
-                data = data.groupby(idx, group_keys=False).apply(f, *args, **kwargs)
-
-            if isinstance(data, pd.DataFrame):
-                schema = HistorySchema(
+        if isinstance(data, pd.DataFrame):
+            if not output_schema:
+                output_schema = HistorySchema(
                     index={name: self.history_schema.index.get(name) for name in data.index.names},
                     columns={name: self.history_schema.columns.get(name) for name in data.columns}
                 )
-            elif isinstance(data, pd.Series):
-                schema = self.history_schema.copy()
-            else:
-                raise ValueError("The function must return a DataFrame or Series.")
-
-            return History(schema, data)
+        elif isinstance(data, pd.Series):
+            output_schema = self.history_schema.copy()
+            data = data.to_frame().T
         else:
-            return History(self.history_schema, self.data.apply(func, *args, **kwargs))
+            raise ValueError("The function must return a DataFrame or Series.")
+
+        return History(output_schema, data)
+
+    def op(self, func, *args, **kwargs) -> pd.DataFrame:
+        return func(self.data, *args, **kwargs)
 
     def dropna(self):
         return History(self.history_schema, self.data.dropna())
@@ -382,8 +406,15 @@ class History(TypeRegistry):
     def __len__(self):
         return len(self.data)
 
+    def __contains__(self, key):
+        return self.data.__contains__(key)
+
     def __getitem__(self, key):
         return self.data[key]
+
+    def __setitem__(self, key, value):
+        self.data[key] = value
+        self.history_schema.columns[key] = type(value)
 
     def __str__(self):
         return f"\n{self.history_schema}, \n{self.data}\n"

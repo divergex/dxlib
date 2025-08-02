@@ -1,8 +1,10 @@
 from datetime import datetime
+from typing import Iterator, List
 
 import pandas as pd
 
-from dxlib.history import History, HistorySchema
+from dxlib.core import Instrument, InstrumentStore
+from dxlib.history import History, HistorySchema, HistoryView
 from .interface import Interface
 
 
@@ -13,27 +15,29 @@ class MarketInterface(Interface):
     def stop(self):
         raise NotImplementedError
 
-    def quote(self, symbols: list[str]) -> float | pd.DataFrame:
+    def quote(self, symbols: List[str] | str | Instrument | List[Instrument]) -> float | pd.DataFrame:
         """
-        Get the current price of the security.
-        """
-        raise NotImplementedError
-
-    def bar(self) -> float:
-        """
-        Get the current price of the security.
+        Get the current price of the instruments.
         """
         raise NotImplementedError
 
-    def historical(self, symbols: list[str], start: datetime, end: datetime, interval: str) -> History:
+    def subscribe(self, history_view: HistoryView) -> Iterator:
         """
-        Get the historical price of the security.
+        Listen to updates. Forms um `historical`.
         """
         raise NotImplementedError
 
-    @property
+    def historical(self, symbols: list[str], start: datetime, end: datetime, interval: str, store: InstrumentStore = None) -> History:
+        """
+        Get the historical price of the instruments.
+        """
+        raise NotImplementedError
+
     def history_schema(self) -> HistorySchema:
         """
-        Return the schema of the historical data.
+        Return the schema of the historical and subscribe data.
         """
-        raise NotImplementedError
+        raise NotImplementedError(f"{self.__class__.__name__} does not implement history_schema")
+
+    def symbols(self, query: str) -> List[str]:
+        raise NotImplementedError(f"{self.__class__.__name__} does not implement symbols")

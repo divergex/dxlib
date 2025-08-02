@@ -1,106 +1,157 @@
-import os
-from typing import Dict, List, Type
-from functools import reduce
+import math
+from numbers import Number
+from typing import Dict, Type, List, Union
 
 import pandas as pd
 
+from .instruments import Instrument
 from dxlib.history import History, HistorySchema
 
 
-class Portfolio(History):
-    """
-    A portfolio is a term used to describe a collection of investments held by an individual or institution.
-    Such investments include but are not limited to stocks, bonds, commodities, and cash.
+def to_tick(x, step):
+    return math.floor(x / step) * step
 
-    A portfolio in the context of this library is a collection of positions, that is, the number of each security held.
+
+class Portfolio:
+    def __init__(self, quantities: Dict[Instrument, float] = None):
+        self.quantities = pd.Series(quantities) if quantities else pd.Series()
+
+    def value(self, prices: pd.Series | Dict[Instrument, float]) -> float:
+        if isinstance(prices, pd.Series):
+            return sum(prices * self.quantities)
+        else:
+            return sum([prices[security] * self.quantities[security] for security in self.securities])
+
+    def weight(self, prices: pd.Series | Dict[Instrument, float]) -> "Portfolio":
+        value = self.value(prices)
+        return Portfolio(self.quantities.copy() / value)
+
+    @staticmethod
+    def ensure_index(indexer, to_reindex):
+        if not indexer.index.equals(to_reindex.index):
+            to_reindex = to_reindex.reindex(indexer.index)
+            isnull = to_reindex.isnull()
+            if isnull.any():
+                raise ValueError(f"Missing prices for: {to_reindex[isnull].index.tolist()}")
+
+    @classmethod
+    def from_weights(cls,
+                     weights: Union[pd.Series, Dict["Instrument", float]],
+                     prices: Union[pd.Series, Dict["Instrument", float]],
+                     value: float
+                     ) -> "Portfolio":
+        weights = pd.Series(weights)
+        prices = pd.Series(prices)
+
+        cls.ensure_index(weights, prices)
+
+        weights = weights / weights.sum()
+        quantities = weights * value / prices
+
+        return cls(quantities.to_dict())
+
+    @classmethod
+    def from_values(cls,
+                    values: Union[pd.Series, Dict["Instrument", float]],
+                    prices: Union[pd.Series, Dict["Instrument", float]],
+                    ):
+        # transform values / prices -> quantities
+        values = pd.Series(values)
+        prices = pd.Series(prices)
+        total = values.sum()
+        return cls.from_weights(values / total, prices, total)
+
+    @classmethod
+    def from_series(cls,
+                    quantities: pd.Series,
+                    ):
+        return cls(quantities.to_dict())
+
+    def get(self, security: Instrument, default: float = 0) -> float:
+        return self.quantities.get(security, default)
+
+    def to_dict(self) -> Dict[Instrument, float]:
+        return self.quantities.to_dict()
+
+    def to_frame(self, column_name="quantity", index_name="instrument"):
+        data = self.quantities.to_frame(column_name)
+        data.index.name = index_name
+        return data
+
+    def __str__(self):
+        return str(self.quantities)
+
+    def update(self, other: "Portfolio"):
+        self.quantities = self.quantities.add(other.quantities, fill_value=0)
+        return self
+
+    def add(self, security: Instrument, quantity: float) -> "Portfolio":
+        self.quantities[security] = self.quantities.get(security, 0) + quantity
+        return self
+
+    def drop_zero(self):
+        self.quantities = self.quantities[self.quantities != 0]
+
+    @property
+    def securities(self) -> List[Instrument]:
+        return list(self.quantities.keys())
+
+
+class PortfolioHistory(History):
+    """
+    A portfolio is a term used to describe a collection of instruments held by an individual or institution.
+    Such instruments include but are not limited to stocks, bonds, commodities, and cash.
+
+    A portfolio in the context of this library is a collection of positions, that is, the number of each investment instruments held.
     """
     def __init__(self,
-                 index: Dict[str, Type] = None,
-                 inventories: List[str] = None,
-                 data: pd.DataFrame = None):
-
-        """
-        A portfolio is a collection of investments held by an individual or institution.
-
-        A portfolio in the context of this library is a collection of positions, that is, the number of each security held.
-
-        Args:
-            index (Dict[str, Type]): The index of the portfolio. Can be used elsewhere.
-            inventories (List[str]): The inventories of the portfolio. Can be used elsewhere.
-            data (Dict[str, Dict[str, float]]): The data for which this portfolio is a container. Can be used elsewhere.
-
-        Returns:
-            Portfolio: A portfolio instance.
-        """
-        schema = HistorySchema(index=index, columns={inventory: float for inventory in inventories or []})
+                 schema_index: Dict[str, Type] = None,
+                 data: pd.DataFrame | dict = None):
+        assert "instrument" in list(
+            schema_index.keys()), "Index can not be converted to portfolio type. Must have instruments indexed at some level."
+        schema = HistorySchema(
+            index=schema_index,
+            columns={"quantity": Number},
+        )
         super().__init__(schema, data)
 
-    def value(self,
-              prices: History,
-              inventories: List['str'] = None,
-              aggregate_inventories: bool = True,
-              ) -> History:
-        """
-        For each column of `other`, evaluate the listed values for matching indices in each Portfolio's inventory,
-        or for specific selected inventories only.
-        """
-        result = {
-            inventory: prices.data.mul(self.data[inventory], axis=0)
-            for inventory in (self.columns if inventories is None else inventories)
-        }
-
-        if aggregate_inventories:
-            result = reduce(lambda a, b: a.add(b, fill_value=0), result.values())
-            return History(self.schema, result)
-
-        elif len(result) == 1:
-            result = list(result.values())[0:]
-
-        return History(self.schema, pd.concat(result))
-
-    def weights(self,
-                prices: History,
-                securities="security"):
-        value = self.value(prices).data.dropna()
-        data = value.sum(axis=1).unstack(securities)
-        aggregated = data.sum(axis=1)
-
-        result = data.divide(aggregated, axis=0)
-
-        return History(self.schema, result.stack(securities).to_frame(name="weight"))
-
-    def agg(self, securities="security", cumsum=True, aggregate_inventories: bool = True):
-        data = self.data
-        inventories = self.columns.copy()
-
-        if cumsum:
-            data = data.groupby(securities, group_keys=False).cumsum()
-
-        if aggregate_inventories:
-            data = data.sum(axis=1).to_frame("inventory")
-            inventories = ["inventory"]
-
-        return Portfolio(self.schema.index.copy(), inventories, data)
-
-    def store(self, storage_path: str, key: str):
-        try:
-            os.makedirs(storage_path + "/portfolio")
-        except FileExistsError:
-            pass
-
-        history_storage = storage_path + "/portfolio"
-        self.data.to_hdf(history_storage + f"/data.h5", key=key, mode='w', format='f')
-        self.schema.store(history_storage + f"/schema", key)
-
     @classmethod
-    def load(cls, storage_path, key):
-        history_storage = storage_path + "/portfolio"
-        data = pd.read_hdf(history_storage + "/data.h5", key, mode='r')
-        schema = HistorySchema.load(history_storage + "/schema", key)
-        assert isinstance(data, pd.DataFrame)
-        return cls(schema.index, schema.columns, data)
+    def from_history(cls, history: History) -> "PortfolioHistory":
+        return PortfolioHistory(
+            schema_index=history.history_schema.index,
+            data=history.data,
+        )
 
-    @classmethod
-    def cache_exists(cls, cache_path, key):
-        history_storage = cache_path + "/portfolio"
-        return os.path.exists(history_storage + f"/data.h5") and os.path.exists(history_storage + f"/schema")
+    def apply(self, func: Dict[str | List[str], callable] | callable, *args, **kwargs) -> "PortfolioHistory":
+        return self.from_history(
+            super().apply(func, *args, **kwargs)
+        )
+
+    def value(self, prices: pd.DataFrame, price_column: str) -> History:
+        values = self.data["quantity"] * prices[price_column]
+        schema = self.history_schema.copy().rename(columns={"quantity": "value"}).set(columns={"value": Number})
+        values = History(schema, values.to_frame(name="value"))
+
+        return values.apply({tuple(set(schema.index_names) - {"instrument"}): lambda x: x.sum()})
+
+    def insert(self, key: pd.MultiIndex, portfolio: "Portfolio"):
+        df = portfolio.to_frame()
+        if not df.empty:
+            key = key.droplevel("instrument").unique().item()
+            portfolio = pd.concat({key: df}, names=list(set(self.history_schema.index_names) - {"instrument"}))
+            self.data = pd.concat([self.data, portfolio])
+
+    def update(self, key: pd.MultiIndex, portfolio: "Portfolio"):
+        df = portfolio.to_frame()
+        if df.empty:
+            return
+
+        key = key.droplevel("instrument").unique().item()
+        index_names = list(set(self.history_schema.index_names) - {"instrument"})
+        new_data = pd.concat({key: df}, names=index_names)
+
+        if not self.data.empty:
+            to_drop = self.data.index.droplevel("instrument") == key
+            self.data = self.data.loc[~to_drop]
+
+        self.data = pd.concat([self.data, new_data])

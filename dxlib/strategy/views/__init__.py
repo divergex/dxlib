@@ -1,1 +1,2 @@
 from .security_signal_view import SecuritySignalView
+from .security_price_view import SecurityPriceView
