@@ -1,7 +1,7 @@
 import datetime
 from functools import reduce
 
-from dxlib import Executor
+from dxlib import Executor, History
 from dxlib.interfaces import BacktestInterface
 from dxlib.market.simulators.gbm import MidpriceGBM
 
@@ -18,15 +18,25 @@ def main():
     interval = (end - start).days / 365
     print(f"Interval: {interval:.2f} years")
 
-    quotes = MidpriceGBM()
-    history = reduce(lambda a, b: a.concat(b), quotes.run(10))
-
-    print(history.head())
+    simulator = MidpriceGBM(mean=0, std=1)
 
     strategy = AvellanedaStoikov()
-    interface = BacktestInterface(history, view := SecurityPriceView())
-    executor = Executor(strategy, interface, PortfolioContext.bind(interface))
-    print(executor.run(view, view.iter(history)))
+    view = SecurityPriceView()
+
+    def run_backtest():
+        history = History()
+        for quotes in simulator.run(10):
+            history.concat(quotes)
+
+        interface = BacktestInterface(history, view)
+        executor = Executor(strategy, interface, PortfolioContext.bind(interface))
+        orders, portfolio_history = executor.run(view, interface.iter())
+        value = portfolio_history.value(interface.market.price_history.data)
+        return value.data
+    
+    data = run_backtest()
+    print(data)
+    print("Value", data.iloc[-1].item())
 
 if __name__ == "__main__":
     main()

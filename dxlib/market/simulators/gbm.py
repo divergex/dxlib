@@ -1,4 +1,4 @@
-from typing import Iterator, List
+from typing import Iterator, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -13,10 +13,10 @@ class Simulator:
 
 class MidpriceGBM(Simulator):
     def __init__(self,
-                 assets: List[Instrument] = None,
-                 midprice: List[float] | float = 100.0,
+                 assets: Optional[List[Instrument]] = None,
+                 midprice: List[float] | float = 1.0,
                  increment=1,
-                 process: GeometricBrownianMotion = None,
+                 process: Optional[GeometricBrownianMotion] = None,
                  *args, **kwargs) -> None:
         self.assets = [Instrument("USD")] if assets is None else assets
         if isinstance(midprice, float):
@@ -34,10 +34,8 @@ class MidpriceGBM(Simulator):
             columns={"price": float},
         )
 
-    def run(self, T=None) -> Iterator[History]:
-        t = 0
-        prices = self.starting_prices
-        while T is None or t < T:
+    def run(self, T) -> Iterator[History]:
+        for prices, t in self.process.simulate(self.starting_prices, 1, T, len(self.assets)):
             time_array = [t + self.increment] * len(self.assets)
             df = pd.DataFrame(
                 {"price": prices},
@@ -47,12 +45,11 @@ class MidpriceGBM(Simulator):
                 ),
             )
             yield History(self.output_schema(), df)
-            prices = self.process.sample(prices, self.increment, len(self.assets))
-            t += self.increment
+        return None
 
 
 if __name__ == "__main__":
     midprice = 100.0
-    simulator = MidpriceGBM(midprice=midprice, mean=0, std=1 / midprice)
+    simulator = MidpriceGBM(midprice=midprice, mean=0, std=1)
 
     print("\n\n".join(str(history.data) for history in simulator.run(10)))

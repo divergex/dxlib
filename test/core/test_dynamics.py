@@ -3,7 +3,7 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dxlib.dynamics import OrnsteinUhlenbeck, CoxIngersollRoss, GeometricBrownianMotion, Hawkes
+from dxlib.core.dynamics import OrnsteinUhlenbeck, CoxIngersollRoss, GeometricBrownianMotion, Hawkes
 
 
 class TestGBM(unittest.TestCase):
@@ -27,28 +27,29 @@ class TestGBM(unittest.TestCase):
         print(sample)
 
     def test_simulate(self):
-        gbm = GeometricBrownianMotion(self.mean, self.std)
-
         x = 100
-
         num_samples = 10
         t = self.trading_hours * 60
-        trajectory = gbm.simulate(x, 1, t, num_samples)
-        self.assertTrue(isinstance(trajectory, np.ndarray))
-        self.assertEqual(trajectory.shape, (int(t), num_samples))
+        gbm = GeometricBrownianMotion(self.mean, self.std)
 
+        trajectory = np.array(list(gbm.simulate(x, 1, t, num_samples)))
+        self.assertTrue(isinstance(trajectory, np.ndarray))
+        self.assertEqual((int(t), num_samples), trajectory.shape)
         print(trajectory)
 
         plt.plot(trajectory)
         plt.title("Simulated trajectories")
         plt.show()
 
+    def test_simulate_returns(self):
+        x = 100
         num_samples = 1000
         t = self.trading_hours * 60
-        trajectory = gbm.simulate(x, 1, t, num_samples)
+        gbm = GeometricBrownianMotion(self.mean, self.std)
 
+        trajectory = np.array(list(gbm.simulate(x, 1, t, num_samples)))
         returns = np.mean(np.diff(trajectory, axis=0) / trajectory[:-1], axis=1)
-        # plot mean returns and test if close to zero
+
         plt.plot(returns, color='black', linestyle='--')
         plt.title("Mean returns")
         plt.show()

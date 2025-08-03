@@ -12,13 +12,13 @@ class PortfolioContext(StrategyContext):
     @classmethod
     def from_interface(cls, interface: TradingInterface):
         context = cls(
-            portfolio=interface.account_interface.portfolio()
+            portfolio=interface.account.portfolio()
         )
         return context
 
     @classmethod
     def build(cls, interface: TradingInterface) -> "PortfolioContext":
-        return cls(portfolio=interface.account_interface.portfolio())
+        return cls(portfolio=interface.account.portfolio())
 
     @classmethod
     def bind(cls, interface: TradingInterface):

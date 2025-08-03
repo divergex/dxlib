@@ -60,7 +60,7 @@ class BacktestMarketInterface(MarketInterface):
         self.base_security = base_security or Instrument("USD")
         self.history = History()
 
-        self.prices = pd.Series({self.base_security: 1}, name="price")
+        self.prices = pd.Series({self.base_security: 1.0}, name="price", dtype="float")
         self.prices.index.name = "instrument"
         self.price_history = History()
 
@@ -80,9 +80,10 @@ class BacktestMarketInterface(MarketInterface):
         for observation in self.context.history_view.iter(self.context.history):
             self.history.concat(observation)
             prices, idx = self.context.history_view.price(observation)
-            self.prices = self.prices.combine_first(prices)
-            self.prices.update(prices)
-            self.price_history.concat_data(self.prices, idx)
+            if not prices.empty:
+                self.prices = self.prices.combine_first(prices)
+                self.prices.update(prices)
+                self.price_history.concat_data(self.prices, idx)
             yield observation
 
 class BacktestInterface(TradingInterface):

@@ -1,3 +1,5 @@
+from typing import Iterator, Tuple
+
 import numpy as np
 
 from .stochastic_process import StochasticProcess
@@ -41,7 +43,7 @@ class GeometricBrownianMotion(StochasticProcess):
         else:
             return x * np.exp((self.mean - 0.5 * self.std ** 2) * dt) + self.std * np.random.normal(0, np.sqrt(dt))
 
-    def simulate(self, x, dt, t, size=None, *args, **kwargs) -> np.ndarray:
+    def simulate(self, x, dt, t, size=None, *args, **kwargs) -> Iterator[Tuple[np.ndarray, float]]:
         """
         Simulate the stochastic process over a given time period.
 
@@ -56,19 +58,19 @@ class GeometricBrownianMotion(StochasticProcess):
         assert ((isinstance(x, (int, float)) and not isinstance(x, complex)) or isinstance(x, np.ndarray)), "Argument must be a non-complex number or a NumPy array"
 
         num_steps = int(t / dt)
-        trajectory = np.zeros((num_steps, size))
+        sample = 0
 
         if isinstance(x, (int, float)) and not isinstance(x, complex):
-            trajectory[0] = x
+            sample = x
         elif isinstance(x, np.ndarray) and size is not None:
             assert x.ndim == 1, "x must be a 1D array."
             assert x.shape[0] == size, "x must have the same size as the number of samples."
-            trajectory[0] = x
+            sample = x
         elif isinstance(x, np.ndarray) and len(x) > 1 and size is None:
             raise ValueError(
                 "Argument 'size' must be provided when 'x' is a NumPy array.")
 
-        for i in range(1, num_steps):
-            trajectory[i] = self.sample(trajectory[i - 1], dt, size)
-
-        return trajectory
+        for i in range(1, num_steps + 1):
+            sample = self.sample(sample, dt, size)
+            yield sample, i * dt
+        return None

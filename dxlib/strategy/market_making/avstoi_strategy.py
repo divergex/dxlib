@@ -1,4 +1,5 @@
 import warnings
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -37,8 +38,11 @@ class AvellanedaStoikov(Strategy):
                 observation: History,
                 history: History,
                 history_view: HistoryView,
-                context: PortfolioContext = None,
+                context: Optional[PortfolioContext] = None,
                 *args, **kwargs) -> History:
+        assert context is not None, ("AvellanedaStoikov strategy requires passing a PortfolioContext builder. "
+                                     "Try passing to the Executor's context_fn.")
+
         output_schema = self.output_schema(history.history_schema)
         mid_price = observation["price"]
         instrument: Instrument = observation.index("instrument")[0]

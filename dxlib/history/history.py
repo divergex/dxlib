@@ -182,7 +182,7 @@ class History(TypeRegistry):
 
     def concat_data(self,
                     rows: pd.Series,
-                    keys: pd.MultiIndex | pd.Index,
+                    keys: Optional[pd.MultiIndex | pd.Index] = None  ,
                     keep: Literal["first", "last"] = "first"
                     ) -> "History":
         data = pd.concat([rows], keys=keys)
