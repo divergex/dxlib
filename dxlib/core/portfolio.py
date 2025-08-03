@@ -138,7 +138,7 @@ class PortfolioHistory(History):
             super().apply(func, *args, **kwargs)
         )
 
-    def value(self, prices: pd.DataFrame, price_column: str) -> History:
+    def value(self, prices: pd.DataFrame, price_column: str = "price") -> History:
         values = self.data["quantity"] * prices[price_column]
         schema = self.history_schema.copy().rename(columns={"quantity": "value"}).set(columns={"value": Number})
         values = History(schema, values.to_frame(name="value"))

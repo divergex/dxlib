@@ -1,4 +1,4 @@
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Tuple
 
 import pandas as pd
 
@@ -35,8 +35,9 @@ class SecuritySignalView(HistoryView):
         for idx in origin.index(name=self.time_index):
             yield self.get(origin, idx)
 
-    def price(self, observation: History) -> pd.Series:
-        return observation.data.reset_index(self.time_index)["close"].rename('price')
+    def price(self, observation: History) -> Tuple[pd.Series, pd.MultiIndex]:
+        idx = observation.index(name=self.time_index).unique()
+        return observation.data.reset_index(self.time_index)["close"].rename('price'), idx
 
     def history_schema(self, history_schema: HistorySchema):
         schema = history_schema.copy()

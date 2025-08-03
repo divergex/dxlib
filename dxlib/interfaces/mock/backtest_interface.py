@@ -61,6 +61,7 @@ class BacktestMarketInterface(MarketInterface):
         self.history = History()
 
         self.prices = pd.Series({self.base_security: 1}, name="price")
+        self.prices.index.name = "instrument"
         self.price_history = History()
 
     def quote(self, security: str | Instrument | List[Instrument] | List[str]) -> pd.Series:
@@ -69,7 +70,7 @@ class BacktestMarketInterface(MarketInterface):
         elif isinstance(security, (Instrument, str)):
             instruments = [Instrument(security) if isinstance(security, str) else security]
         else:
-            return pd.Series()
+            instruments = security
         return self.prices.loc[instruments]
 
     def history_schema(self) -> HistorySchema:
@@ -78,9 +79,10 @@ class BacktestMarketInterface(MarketInterface):
     def get_view(self):
         for observation in self.context.history_view.iter(self.context.history):
             self.history.concat(observation)
-            self.prices = self.prices.combine_first(prices := self.context.history_view.price(observation))
+            prices, idx = self.context.history_view.price(observation)
+            self.prices = self.prices.combine_first(prices)
             self.prices.update(prices)
-            self.price_history.concat(observation)
+            self.price_history.concat_data(self.prices, idx)
             yield observation
 
 class BacktestInterface(TradingInterface):

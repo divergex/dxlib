@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, Callable, Optional, Any
+from typing import Iterable, Callable, Optional, Any, Tuple
 
 import pandas as pd
 
@@ -28,7 +28,7 @@ class HistoryView(ABC):
         pass
 
     @staticmethod
-    def price(observation: History) -> pd.Series:
+    def price(observation: History) -> Tuple[pd.Series, pd.MultiIndex]:
         raise NotImplementedError("Pricing is not implemented. Perhaps you are backtesting with an invalid HistoryView?")
 
     @staticmethod

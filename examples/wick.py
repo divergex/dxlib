@@ -22,15 +22,15 @@ def main():
 
     strat = SignalStrategy(WickReversal(range_multiplier=0.4, close_multiplier=0.7), OrderGenerator())
     view = SecuritySignalView(time_index="datetime")
-    
+
     def run_backtest():
         history = storage.cached(store, History, api.historical, symbols, start, end)
 
         portfolio = Portfolio({Instrument("USD"): 1000})
         interface = BacktestInterface(history, view, portfolio)
         executor = Executor(strat, interface)
-        orders, portfolio = executor.run(view, interface.iter())
-        value = portfolio.value(interface.market.price_history.data, "close")
+        orders, portfolio_history = executor.run(view, interface.iter())
+        value = portfolio_history.value(interface.market.price_history.data)
         final_value = value.data.iloc[-1].item()
         return final_value
 

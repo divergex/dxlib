@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import Dict, List, Union, Optional
+from typing import Dict, List, Union, Optional, Literal
 
 import numpy as np
 import pandas as pd
@@ -19,6 +19,7 @@ class History(TypeRegistry):
     The main purpose of a history is to provide common methods to manipulate and analyze the data, as well as context.
     This is useful for easily storing, retrieving, backtesting and networking data.
     """
+
     def __init__(self,
                  history_schema: HistorySchema | dict = None,
                  data: Optional[pd.DataFrame | dict | list] = None):
@@ -123,7 +124,7 @@ class History(TypeRegistry):
         else:
             return {name: self.levels(name) for name in (names if names else self.indices)}
 
-    def index(self, name: str | None) -> pd.Index:
+    def index(self, name: str | None) -> pd.MultiIndex:
         """
         Get the index by name.
 
@@ -159,7 +160,7 @@ class History(TypeRegistry):
 
     # region Manipulation
 
-    def concat(self, other: "History", keep="first") -> "History":
+    def concat(self, other: "History", keep: Literal["first", "last"] = "first") -> "History":
         """
         Complements current history with another histories content. Ignores repeated data.
 
@@ -176,13 +177,18 @@ class History(TypeRegistry):
             raise ValueError("The schemas of the histories do not match.")
 
         self.data = pd.concat([self.data, other.data])
-        self.data = self.data[~self.data.index.duplicated(keep=keep)]
+        self.data = self.data.loc[~self.data.index.duplicated(keep=keep)]
         return self
 
-    def add(self, other):
-        if isinstance(other, pd.DataFrame):
-            return self.data.add(other)
-        return None
+    def concat_data(self,
+                    rows: pd.Series,
+                    keys: pd.MultiIndex | pd.Index,
+                    keep: Literal["first", "last"] = "first"
+                    ) -> "History":
+        data = pd.concat([rows], keys=keys)
+        self.data = pd.concat([self.data, data.to_frame()])
+        self.data = self.data.loc[~self.data.index.duplicated(keep=keep)]
+        return self
 
     def extend(self, other: "History") -> "History":
         """
@@ -228,7 +234,8 @@ class History(TypeRegistry):
                 data = self.data.loc[:, available_columns]
             return History(history_schema=self.history_schema.copy(), data=data)
         except KeyError:
-            return History(history_schema=self.history_schema.copy(), data=pd.DataFrame(columns=columns, index=self.data.index))
+            return History(history_schema=self.history_schema.copy(),
+                           data=pd.DataFrame(columns=columns, index=self.data.index))
 
     @staticmethod
     def to_native(v):
@@ -275,7 +282,6 @@ class History(TypeRegistry):
         )
 
         return History(schema, data[columns]) if not raw else data
-
 
     def set(self, values: Dict | pd.DataFrame):
         """
@@ -359,7 +365,8 @@ class History(TypeRegistry):
         kwargs = item[2] if len(item) > 2 else {}
         return data.apply(f, *args, **kwargs)
 
-    def apply(self, func: Dict[str | List[str], callable] | callable | List[callable], *args, output_schema = None, **kwargs) -> "History":
+    def apply(self, func: Dict[str | List[str], callable] | callable | List[callable], *args, output_schema=None,
+              **kwargs) -> "History":
         data = self.data
 
         if isinstance(func, dict):

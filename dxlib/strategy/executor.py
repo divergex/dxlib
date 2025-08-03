@@ -45,7 +45,7 @@ class Executor:
             ) -> Tuple[History, PortfolioHistory]:
         output_schema = self.strategy.output_schema(history_view.history_schema(self.market.history_schema()))
         result = History(output_schema)
-        portfolio = PortfolioHistory(result.history_schema.copy().index)
+        portfolio_history = PortfolioHistory(result.history_schema.copy().index)
 
         if history is None:
             if (observation := next(observer, None)) is None:
@@ -54,12 +54,12 @@ class Executor:
             result = result.concat(
                 self._execute(observation, history, history_view)
             )
-            portfolio.update(observation.data.index, self.account.portfolio())
+            portfolio_history.update(observation.data.index, self.account.portfolio())
 
         for observation in observer:
             result.concat(
                 self._execute(observation, history, history_view)
             )
-            portfolio.update(observation.data.index, self.account.portfolio())
+            portfolio_history.update(observation.data.index, self.account.portfolio())
 
-        return result, portfolio
+        return result, portfolio_history
