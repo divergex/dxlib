@@ -6,7 +6,7 @@ from dxlib.core import Portfolio, Instrument
 from dxlib.history import History, HistorySchema, HistoryView
 from dxlib.interfaces import TradingInterface, OrderInterface, AccountInterface, MarketInterface
 from dxlib.market import Order, OrderEngine, OrderTransaction
-from .fill_model import FillModelRegistry, ImmediateMarketFillModel
+from dxlib.market.simulators.fill_model import FillModelRegistry, ImmediateMarketFillModel
 
 
 class BacktestOrderInterface(OrderInterface):

@@ -2,7 +2,7 @@ from collections import deque
 from typing import Dict
 from uuid import UUID
 
-from dxlib.market.orders.order import Order
+from .orders.order import Order
 from .transaction import Transaction
 from .red_black_tree import RedBlackTree
 
@@ -22,7 +22,7 @@ class PriceLevel:
         return self.orders[0]
 
 
-class LimitOrderBook:
+class OrderBook:
     def __init__(self, tick_size=2):
         self.asks = RedBlackTree()
         self.bids = RedBlackTree()

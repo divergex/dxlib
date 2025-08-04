@@ -11,8 +11,6 @@ from .benchmark import *
 from .strategy import *
 
 
-__all__ = [
-    'interfaces',
-    "strategy",
-    'core',
-]
+__all__ = ['interfaces', 'strategy', 'core']
+__all__ += core.__all__
+__all__ += history.__all__

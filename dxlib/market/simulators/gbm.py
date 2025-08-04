@@ -5,10 +5,7 @@ import pandas as pd
 
 from dxlib import History, HistorySchema, Instrument
 from dxlib.core.dynamics import GeometricBrownianMotion
-
-
-class Simulator:
-    pass
+from .simulator import Simulator
 
 
 class MidpriceGBM(Simulator):

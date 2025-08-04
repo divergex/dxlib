@@ -5,7 +5,7 @@ import numpy as np
 from dxlib import Executor, History, Instrument
 from dxlib.interfaces import BacktestInterface
 from dxlib.interfaces.mock import exponential_decay
-from dxlib.interfaces.mock.fill_model import PoissonLimitFillModel, FillModelRegistry
+from dxlib.market.simulators.fill_model import PoissonLimitFillModel, FillModelRegistry
 from dxlib.market.simulators.gbm import MidpriceGBM
 
 from dxlib.strategy import PortfolioContext
@@ -16,7 +16,7 @@ from dxlib.strategy.market_making import AvellanedaStoikov
 def main():
     simulator = MidpriceGBM(assets=[Instrument("AAPL")], midprice=[1.0], mean=0, vol=.15)
 
-    fill_model = PoissonLimitFillModel(1, exponential_decay(base_rate=0.05, decay_rate=2))
+    fill_model = PoissonLimitFillModel(1, exponential_decay(base_rate=0.1, decay_rate=4))
     fill_registry = FillModelRegistry(fill_model)
 
     strategy = AvellanedaStoikov(gamma=0.1)
