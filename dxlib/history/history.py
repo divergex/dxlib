@@ -21,7 +21,7 @@ class History(TypeRegistry):
     """
 
     def __init__(self,
-                 history_schema: HistorySchema | dict = None,
+                 history_schema: Optional[HistorySchema | dict] = None,
                  data: Optional[pd.DataFrame | dict | list] = None):
         """
         A history is a collection of dense mutable data points.
@@ -39,8 +39,8 @@ class History(TypeRegistry):
         Returns:
             History: A history instance.
         """
-        self.history_schema: HistorySchema = history_schema
-        self.data: pd.DataFrame | None = None
+        self.history_schema = history_schema
+        self.data = None
 
         if isinstance(history_schema, dict):
             self.history_schema = HistorySchema(**history_schema)
@@ -55,8 +55,13 @@ class History(TypeRegistry):
         elif isinstance(data, list):
             data: pd.DataFrame = pd.DataFrame(data)
         elif data is None:
-            self.data: pd.DataFrame = pd.DataFrame()
-            return
+            if history_schema is not None:
+                empty_index = pd.MultiIndex.from_tuples([], names=history_schema.index_names)
+                self.data = pd.DataFrame(index=empty_index, columns=history_schema.column_names)
+                return
+            else:
+                self.data = pd.DataFrame()
+                return
         else:
             raise TypeError("Invalid data type.")
 

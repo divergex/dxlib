@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Dict
 
-from dxlib.market import Order
+from dxlib.market import Order, OrderTransaction
 
 
 class OrderInterface(ABC):
@@ -10,4 +10,8 @@ class OrderInterface(ABC):
 
     @abstractmethod
     def send(self, orders: List[Order]):
+        pass
+    
+    @abstractmethod
+    def transactions(self) -> Dict[str, OrderTransaction]:
         pass

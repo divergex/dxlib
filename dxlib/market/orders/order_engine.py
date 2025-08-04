@@ -13,7 +13,7 @@ class OrderEngine:
     market = MarketOrderFactory()
     limit = LimitOrderFactory()
 
-    def trade(self, portfolio: Portfolio, transactions: List[OrderTransaction]) -> Portfolio:
+    def record(self, portfolio: Portfolio, transactions: List[OrderTransaction]) -> Portfolio:
         for transaction in transactions:
             portfolio.add(transaction.order.instrument, transaction.amount)
             portfolio.add(self.default_leg, -transaction.value)
@@ -23,4 +23,4 @@ class OrderEngine:
     def to_portfolio(self, transactions: List[OrderTransaction]):
         # transform a list of transactions into additions into a portfolio
         portfolio = Portfolio()
-        return self.trade(portfolio, transactions)
+        return self.record(portfolio, transactions)

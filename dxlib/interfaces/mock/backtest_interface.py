@@ -1,39 +1,42 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import pandas as pd
 
 from dxlib.core import Portfolio, Instrument
 from dxlib.history import History, HistorySchema, HistoryView
 from dxlib.interfaces import TradingInterface, OrderInterface, AccountInterface, MarketInterface
-from dxlib.market import Order, OrderTransaction, OrderEngine, Size, SizeType
+from dxlib.market import Order, OrderEngine, OrderTransaction
+from .fill_model import FillModelRegistry, ImmediateMarketFillModel
 
 
 class BacktestOrderInterface(OrderInterface):
-    def __init__(self, context: "BacktestInterface"):
+    def __init__(self, context: "BacktestInterface", fill_registry: FillModelRegistry):
         super().__init__()
         self.context = context
+        self.fill_registry = fill_registry
+        self._transactions = {}
 
-    def send(self, orders: List[Order]):
-        transactions = []
-        for order in orders:
-            if order.is_none():
-                continue
-            if isinstance(order.quantity, Size) and order.quantity.is_relative:
-                price = self.context.market.quote(order.instrument).item()
-                if order.quantity.kind == SizeType.PercentOfEquity:
-                    equity = self.context.account.equity()
-                    quantity = order.quantity.value * equity / price
-                elif order.quantity.kind == SizeType.PercentOfPosition:
-                    raise NotImplementedError
-                else:
-                    raise TypeError("Invalid quantity type.")
-                transactions.append(OrderTransaction(order, price, quantity))
-            else:
-                transactions.append(OrderTransaction(order, order.price, float(order.quantity)))
-
-        self.context.order_engine.trade(self.context.portfolio, transactions)
-        return transactions
-
+    def send(self, orders: List[Order]) -> Dict[str, OrderTransaction]:
+        self._transactions = {}
+        transactions = {
+            order.uuid: tx for order in orders
+            if not order.is_none()
+            for tx in (
+                (
+                    self.fill_registry.get(order.instrument)
+                    .fill(order, self.context)
+                    ,)
+            )
+            if tx is not None
+        }
+        if not transactions:
+            return {}
+        self.context.order_engine.record(self.context.portfolio, list(transactions.values()))
+        self._transactions.update(transactions)
+        return self._transactions
+    
+    def transactions(self) -> Dict[str, OrderTransaction]:
+        return self._transactions
 
 class BacktestAccountInterface(AccountInterface):
     def __init__(self, context: "BacktestInterface"):
@@ -91,15 +94,21 @@ class BacktestInterface(TradingInterface):
     order: BacktestOrderInterface
     market: BacktestMarketInterface
 
-    def __init__(self, history: History, history_view: HistoryView, portfolio: Optional[Portfolio] = None):
+    def __init__(self, 
+                 history: History, 
+                 history_view: HistoryView, 
+                 portfolio: Optional[Portfolio] = None,
+                 fill_registry: Optional[FillModelRegistry] = None,
+                 ):
         self.history = history
         self.history_view = history_view
         self.portfolio = portfolio if portfolio is not None else Portfolio()
         self.order_engine = OrderEngine()
+        fill_registry = fill_registry if fill_registry is not None else FillModelRegistry(ImmediateMarketFillModel())
 
         super().__init__(
             account=BacktestAccountInterface(self),
-            order=BacktestOrderInterface(self),
+            order=BacktestOrderInterface(self, fill_registry),
             market=BacktestMarketInterface(self)
         )
 

@@ -1,8 +1,7 @@
-import datetime
-from functools import reduce
-
-from dxlib import Executor, History
+from dxlib import Executor, History, Instrument
 from dxlib.interfaces import BacktestInterface
+from dxlib.interfaces.mock import exponential_decay
+from dxlib.interfaces.mock.fill_model import PoissonLimitFillModel, FillModelRegistry
 from dxlib.market.simulators.gbm import MidpriceGBM
 
 from dxlib.strategy import PortfolioContext
@@ -11,16 +10,12 @@ from dxlib.strategy.market_making import AvellanedaStoikov
 
 
 def main():
-    symbols = ["AAPL", "MSFT", "PETR4.SA", "BBAS3.SA"]
-    end = datetime.datetime(2025, 7, 29)
-    start = end - datetime.timedelta(hours=24)
+    simulator = MidpriceGBM(assets=[Instrument("AAPL")], mean=0, vol=.01)
 
-    interval = (end - start).days / 365
-    print(f"Interval: {interval:.2f} years")
+    fill_model = PoissonLimitFillModel(1, exponential_decay(0.07, 1.5))
+    fill_registry = FillModelRegistry(fill_model)
 
-    simulator = MidpriceGBM(mean=0, std=1)
-
-    strategy = AvellanedaStoikov()
+    strategy = AvellanedaStoikov(gamma=0.1)
     view = SecurityPriceView()
 
     def run_backtest():
@@ -28,15 +23,16 @@ def main():
         for quotes in simulator.run(10):
             history.concat(quotes)
 
-        interface = BacktestInterface(history, view)
+        interface = BacktestInterface(history, view, fill_registry=fill_registry)
         executor = Executor(strategy, interface, PortfolioContext.bind(interface))
         orders, portfolio_history = executor.run(view, interface.iter())
         value = portfolio_history.value(interface.market.price_history.data)
-        return value.data
+        return history, portfolio_history, value
     
-    data = run_backtest()
-    print(data)
-    print("Value", data.iloc[-1].item())
+    history, portfolio_history, value = run_backtest()
+    print(history.data)
+    print(portfolio_history.data)
+    print(value.data)
 
 if __name__ == "__main__":
     main()
