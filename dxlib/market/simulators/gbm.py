@@ -15,7 +15,6 @@ class MidpriceGBM(Simulator):
     def __init__(self,
                  assets: Optional[List[Instrument]] = None,
                  midprice: List[float] | float = 1.0,
-                 increment=1,
                  process: Optional[GeometricBrownianMotion] = None,
                  *args, **kwargs) -> None:
         self.assets = [Instrument("USD")] if assets is None else assets
@@ -23,8 +22,6 @@ class MidpriceGBM(Simulator):
             self.starting_prices = np.array([midprice] * len(self.assets))
         else:
             self.starting_prices = np.array(midprice)
-        self.increment = increment
-
         self.process = GeometricBrownianMotion(*args, **kwargs) if process is None else process
 
     @staticmethod
@@ -34,9 +31,9 @@ class MidpriceGBM(Simulator):
             columns={"price": float},
         )
 
-    def run(self, T) -> Iterator[History]:
-        for prices, t in self.process.simulate(self.starting_prices, 1, T, len(self.assets)):
-            time_array = [t + self.increment] * len(self.assets)
+    def run(self, dt, T) -> Iterator[History]:
+        for prices, t in self.process.simulate(self.starting_prices, dt, T, len(self.assets)):
+            time_array = [t + dt] * len(self.assets)
             df = pd.DataFrame(
                 {"price": prices},
                 index=pd.MultiIndex.from_arrays(
