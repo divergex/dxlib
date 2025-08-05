@@ -8,6 +8,9 @@
     <h1 style="margin: 0;">dxlib - A Quantitative Finance Library</h1>
 </div>
 
+![GitHub last commit](https://img.shields.io/github/last-commit/divergex/dxlib) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/divergex/dxlib/python-publish.yml)
+
+
 Built using Python, **dxlib** provides a comprehensive set of tools for the modern quantitative analyst.
 
 It is a modular, extensible library tailored for both individual strategy developers and professional trading funds. 
