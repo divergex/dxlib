@@ -1,7 +1,7 @@
 import pandas as pd
 
 from dxlib.history import History, HistorySchema
-from dxlib.market.signal import Signal
+from ..signal import Signal
 
 
 class BolllingerBands:

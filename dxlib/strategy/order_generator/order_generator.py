@@ -1,7 +1,5 @@
 from typing import List
 
-import pandas as pd
-
 from dxlib.core import Portfolio
 from dxlib.history import History, HistorySchema
 from dxlib.market import OrderEngine, Order, Side
@@ -13,8 +11,8 @@ class OrderGenerator:
 
     def to_order(self, row):
         return row.drop("instrument").map(
-            lambda v: None if v.to_side() is Side.NONE
-            else OrderEngine.market.percent_of_equity(row["instrument"], self.percent, v.to_side())
+            lambda v: None if Side.from_signal(v) is Side.NONE
+            else OrderEngine.market.percent_of_equity(row["instrument"], self.percent, Side.from_signal(v))
         )
 
     def generate(self, signals: History) -> History:

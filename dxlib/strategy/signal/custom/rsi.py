@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from dxlib.market import Signal
+from dxlib.core import Signal
 from dxlib.history import HistorySchema
 from ..signal_generator import SignalGenerator
 

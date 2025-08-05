@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import numpy as np
 
-from dxlib.core import Instrument
+from dxlib.core import Instrument, Signal
 from dxlib.types import TypeRegistry
 
 
@@ -20,7 +20,10 @@ class Side(Enum):
     @classmethod
     def signed(cls, x: numbers.Number | np.number):
         return cls((float(x) > 0) - (float(x) < 0))
-
+    
+    @classmethod
+    def from_signal(cls, signal: Signal):
+        return cls(signal.value)
 
 class Order(TypeRegistry):
     def __init__(self, instrument, price, quantity, side: Side, uuid=None, client=None):

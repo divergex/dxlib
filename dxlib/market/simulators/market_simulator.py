@@ -1,12 +1,11 @@
 from dataclasses import dataclass, field
-from email.policy import default
 from typing import List, Tuple, Optional
 
 import numpy as np
 
 from dxlib import Instrument
-from dxlib.core.dynamics import GeometricBrownianMotion, CoxIngersollRoss, OrnsteinUhlenbeck, Hawkes
 from dxlib.market import Order, OrderTransaction, OrderEngine
+from dxlib.core.dynamics import GeometricBrownianMotion, CoxIngersollRoss, OrnsteinUhlenbeck, Hawkes
 
 from ..order_book import OrderBook
 
@@ -113,8 +112,8 @@ class MarketSimulator:
             orders = self._sample_orders(self.midprice())
             for order in orders:
                 self.lob.send_order(order)
-            self.market_variables['midprice'].append(self.midprice())
-            self.market_variables['timestep'] += self.dt
+            self.market_variables.midprice.append(self.midprice())
+            self.market_variables.timestep += self.dt
 
     def midprice(self):
         best_ask = self.lob.asks.bottom(
@@ -124,7 +123,7 @@ class MarketSimulator:
         if best_ask is not None and best_bid is not None:
             return (best_ask + best_bid) / 2
         # else, return mean of last 5 midprices
-        return np.mean(self.market_variables['midprice'][-5:])
+        return np.mean(self.market_variables.midprice[-5:])
 
     def spread(self):
         best_ask = self.lob.asks.bottom(
@@ -150,28 +149,28 @@ class MarketSimulator:
                   for price, quantity in zip(bids, bids_quantity)]
 
         return np.array(orders)
-
+ 
     def set_order(self, bid: Optional[Order] = None, ask: Optional[Order] = None):
         if bid is not None:
-            self.user_variables["bid_price"] = bid.price
-            self.user_variables["bid_quantity"] = bid.quantity
+            self.user_variables.bid_price = bid.price
+            self.user_variables.bid_quantity = bid.quantity
 
-            existing_order = self.user_variables.get("bid_order", None)
+            existing_order = self.user_variables.bid_order
             if existing_order:
                 existing_order = self.lob.orders.get(existing_order.uuid, None)
             if existing_order is None:
                 self.lob.send_order(bid)
-                self.user_variables["bid_order"] = bid
+                self.user_variables.bid_order = bid
             elif abs(existing_order.price - bid.price) > self.order_eps:
                 self.lob.cancel_order(existing_order.uuid)
                 self.lob.send_order(bid)
-                self.user_variables["bid_order"] = bid
+                self.user_variables.bid_order = bid
 
         if ask is not None:
-            self.user_variables["ask_price"] = ask.price
-            self.user_variables["ask_quantity"] = ask.quantity
+            self.user_variables.ask_price = ask.price
+            self.user_variables.ask_quantity = ask.quantity
 
-            existing_order = self.user_variables.get("ask_order", None)
+            existing_order = self.user_variables.ask_order
             if existing_order:
                 existing_order = self.lob.orders.get(existing_order.uuid, None)
             if existing_order is None:

@@ -1,1 +1,1 @@
-from .periodic import PeriodicTimer
+from .periodic_timer import PeriodicTimer

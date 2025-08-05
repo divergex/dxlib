@@ -1,11 +1,6 @@
 import threading
 import time
 import queue
-from concurrent.futures import ThreadPoolExecutor, TimeoutError
-
-import threading
-import time
-import queue
 
 class PeriodicTimer:
     def __init__(self, interval, function, timeout=None, max_queue_size=0):

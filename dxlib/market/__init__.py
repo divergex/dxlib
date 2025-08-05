@@ -1,5 +1,4 @@
-from .order_book import LimitOrderBook
-from .signal import Signal
+from .order_book import OrderBook
 from .transaction import Transaction, OrderTransaction
 
 from .orders import *

@@ -3,7 +3,8 @@ from typing import Iterator, List, Optional
 import numpy as np
 import pandas as pd
 
-from dxlib import History, HistorySchema, Instrument
+from dxlib.core import Instrument
+from dxlib.history import History, HistorySchema
 from dxlib.core.dynamics import GeometricBrownianMotion
 from .simulator import Simulator
 

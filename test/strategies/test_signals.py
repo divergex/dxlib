@@ -4,7 +4,7 @@ import pandas as pd
 
 from dxlib import HistorySchema
 from dxlib.core.indicators import RSI
-from dxlib.market.signal import Signal
+from dxlib.core.signal import Signal
 from dxlib.interfaces import MockMarket
 from dxlib.strategy.strategy import SignalStrategy
 

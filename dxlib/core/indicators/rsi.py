@@ -1,7 +1,7 @@
 import pandas as pd
 
 from dxlib.history import History
-from dxlib.market.signal import Signal
+from dxlib.core.signal import Signal
 
 
 class RSI:

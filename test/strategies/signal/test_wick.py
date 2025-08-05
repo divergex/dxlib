@@ -2,7 +2,7 @@ import unittest
 
 import pandas as pd
 
-from dxlib.market.signal import Signal
+from dxlib.core.signal import Signal
 from dxlib.interfaces import MockMarket
 from dxlib.strategy.signal import SignalStrategy
 from dxlib.strategy.signal.custom.wick_reversal import WickReversal
