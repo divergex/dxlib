@@ -1,10 +1,9 @@
-import time
 import unittest
 from datetime import datetime
 
-from dxlib.strategy.arbitrage.pairs.solver import generalized_arbitrage_signal
+from dxlib.interfaces.external.wikipedia.wikipedia import Wikipedia
 from dxlib.interfaces import MarketInterface
-import dxlib.interfaces.external.yfinance as yfinance
+from dxlib.interfaces.external.yfinance import yfinance
 
 def convert_symbol(symbol):
     if '=' in symbol:
@@ -37,12 +36,19 @@ class TestYFinance(unittest.TestCase):
         quotes = quotes[["bid", "ask"]].reset_index(level='timestamp')
         quotes.index = quotes.index.map(convert_symbol)
         print(quotes)
-        print(generalized_arbitrage_signal(quotes))
 
     def test_symbols(self):
         query = "totv"
         symbols = self.api.symbols(query)
         print(symbols)
+
+    def test_large_historical(self):
+        symbols = Wikipedia().sp500()
+        history = self.api.historical(symbols,
+                                      datetime.strptime("2021-01-01", "%Y-%m-%d"),
+                                      datetime.strptime("2021-02-01", "%Y-%m-%d"),
+                                      "1d")
+        print(history)
 
 if __name__ == '__main__':
     unittest.main()

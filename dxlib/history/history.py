@@ -19,6 +19,7 @@ class History(TypeRegistry):
     The main purpose of a history is to provide common methods to manipulate and analyze the data, as well as context.
     This is useful for easily storing, retrieving, backtesting and networking data.
     """
+    history_schema: HistorySchema
 
     def __init__(self,
                  history_schema: Optional[HistorySchema | dict] = None,
@@ -39,11 +40,12 @@ class History(TypeRegistry):
         Returns:
             History: A history instance.
         """
-        self.history_schema = history_schema
-        self.data = None
-
-        if isinstance(history_schema, dict):
+        if isinstance(history_schema, HistorySchema):
+            self.history_schema = history_schema
+        elif isinstance(history_schema, dict):
             self.history_schema = HistorySchema(**history_schema)
+        elif history_schema is None:
+            raise ValueError("HistorySchema must be provided, even if empty.")
 
         if isinstance(data, pd.DataFrame):
             data: pd.DataFrame = data
@@ -56,8 +58,8 @@ class History(TypeRegistry):
             data: pd.DataFrame = pd.DataFrame(data)
         elif data is None:
             if history_schema is not None:
-                empty_index = pd.MultiIndex.from_tuples([], names=history_schema.index_names)
-                self.data = pd.DataFrame(index=empty_index, columns=history_schema.column_names)
+                empty_index = pd.MultiIndex.from_tuples([], names=self.history_schema.index_names)
+                self.data = pd.DataFrame(index=empty_index, columns=self.history_schema.column_names)
                 return
             else:
                 self.data = pd.DataFrame()
@@ -129,7 +131,11 @@ class History(TypeRegistry):
         else:
             return {name: self.levels(name) for name in (names if names else self.indices)}
 
-    def index(self, name: str | None) -> pd.MultiIndex:
+    @property
+    def index(self) -> pd.MultiIndex | pd.Index:
+        return self.data.index
+
+    def level_values(self, name: str):
         """
         Get the index by name.
 

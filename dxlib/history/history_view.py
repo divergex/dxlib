@@ -14,7 +14,7 @@ class HistoryView(ABC):
 
     @staticmethod
     @abstractmethod
-    def apply(history: History, function: Callable, output_schema: Optional[HistorySchema] = None):
+    def apply(history: History, function: Callable, output_schema: Optional[HistorySchema] = None) -> History:
         pass
 
     @staticmethod

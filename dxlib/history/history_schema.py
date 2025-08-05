@@ -14,7 +14,7 @@ class HistorySchema(TypeRegistry):
     as well as the column names mapped to their types.
     """
 
-    def __init__(self, index: Dict[str, Type] = None, columns: Dict[str, Type] = None):
+    def __init__(self, index: Dict[str, Type], columns: Dict[str, Type]):
         self.index: Dict[str, Type] = index  # name = [level1, level2, ...], type = ['str', 'int', ...]
         self.columns: Dict[str, Type] = columns
 

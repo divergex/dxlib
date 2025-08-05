@@ -10,26 +10,26 @@ class Mock(ABC):
     stocks = ["AAPL", "MSFT", "GOOG", "AMZN", "FB"]
 
     @classmethod
-    def instruments(cls):
+    def instrument(cls):
         return [Instrument(symbol) for symbol in cls.stocks]
 
     @classmethod
     def schema(cls):
         return HistorySchema(
-            index={"instruments": Instrument, "date": pd.Timestamp},
+            index={"instrument": Instrument, "date": pd.Timestamp},
             columns={"open": Number},
         )
 
     @classmethod
     def large_schema(cls):
         return HistorySchema(
-            index={"instruments": Instrument, "date": pd.Timestamp},
+            index={"instrument": Instrument, "date": pd.Timestamp},
             columns={"open": Number, "volume": Number},
         )
 
     @classmethod
     def tight_data(cls):
-        store = InstrumentStore.from_list(cls.instruments())
+        store = InstrumentStore.from_list(cls.instrument())
         return {
             "index": [
                 (store["AAPL"], "2021-01-01"),
@@ -42,26 +42,26 @@ class Mock(ABC):
             ],
             "columns": ["open"],
             "data": [[100], [200], [101], [201], [102], [202], [103]],
-            "index_names": ["instruments", "date"],
+            "index_names": ["instrument", "date"],
             "column_names": [""],
         }
 
     @classmethod
     def small_data(cls):
-        store = InstrumentStore.from_list(cls.instruments())
+        store = InstrumentStore.from_list(cls.instrument())
         return {"index": [
             (store["TSLA"], "2021-01-01"),
             (store["MSFT"], "2021-01-01"),
         ],
             "columns": ["open"],
             "data": [[100], [200]],
-            "index_names": ["instruments", "date"],
+            "index_names": ["instrument", "date"],
             "column_names": [""]
         }
 
     @classmethod
     def large_data(cls):
-        store = InstrumentStore.from_list(cls.instruments())
+        store = InstrumentStore.from_list(cls.instrument())
 
         return {
             "index": [
@@ -103,6 +103,6 @@ class Mock(ABC):
                 [207, 2007],
                 [108, 1008],
             ],
-            "index_names": ["instruments", "date"],
+            "index_names": ["instrument", "date"],
             "column_names": [""],
         }

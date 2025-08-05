@@ -1,5 +1,6 @@
 import pandas as pd
 
+from dxlib import HistorySchema
 from dxlib.core import Signal
 from dxlib.history import History
 
@@ -13,28 +14,22 @@ class Volatility:
         return prices.pct_change().rolling(self.window).std()
 
     def get_signals(self, history: History) -> History:
-        df = history.data
-        vol_df = df.apply(self.volatility)
+        vol = history.apply({"instrument": self.volatility})
 
-        signals = pd.DataFrame(index=df.index, columns=df.columns)
+        signals = pd.DataFrame(index=vol.data.index, columns=vol.columns)
+        threshold = vol.apply({"date": lambda x: x.quantile(self.quantile)}).data
 
-        for date in df.index:
-            vols = vol_df.loc[date]
-            if vols.isna().all():
-                continue
-            threshold = vols.quantile(self.quantile)
-            for asset in df.columns:
-                signals.at[date, asset] = (
-                    Signal.BUY if vols[asset] <= threshold else Signal.HOLD
-                )
+        for date in vol.level_values("date"):
+            row = vol.get({"date": [date]})
+            new = row.data >= threshold.loc[date]
+            signals.loc[new.any(axis=1)[lambda x: x].index] = Signal.BUY
+
+        schema = HistorySchema(
+            index=history.history_schema.index,
+            columns={col: Signal for col in history.history_schema.column_names},
+        )
 
         return History(
-            history_schema=history.history_schema,
-            data={
-                "index": df.index,
-                "index_names": df.index.names,
-                "columns": signals.columns,
-                "column_names": [""],
-                "data": signals,
-            }
+            history_schema=schema,
+            data=signals.dropna()
         )
