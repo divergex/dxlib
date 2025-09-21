@@ -2,7 +2,7 @@ from collections import deque
 from typing import Dict
 from uuid import UUID
 
-from .orders.order import Order
+from .orders.order import Order, Side
 from .transaction import Transaction
 from .red_black_tree import RedBlackTree
 
@@ -29,6 +29,11 @@ class OrderBook:
         self.orders: Dict[UUID, Order] = {}
         self.tick_size = tick_size
 
+    def clear(self):
+        self.asks.clear()
+        self.bids.clear()
+        self.orders = {}
+
     def cancel_order(self, order_id):
         if not order_id in self.orders:
             return
@@ -41,29 +46,74 @@ class OrderBook:
                 tree.delete(order.price)
         del self.orders[order_id]
 
+    def quantity(self, price: float, side: Side):
+        price = round(price, self.tick_size)
+        price_level = PriceLevel(price)
+        return self._quantity(price_level, side)
+
+    def queue_ahead(self, price: float, side: Side):
+        price = round(price, self.tick_size)
+        if side == Side.BUY:
+            tree = self.bids
+            get_best = tree.top
+            compare = lambda x, y: x > y
+        elif side == Side.SELL:
+            tree = self.asks
+            get_best = tree.bottom
+            compare = lambda x, y: x < y
+        else:
+            raise ValueError("side must be Side.BUY or Side.SELL")
+
+        total_quantity = 0
+        best_level = get_best()
+        best_level = best_level.value if best_level is not None else None
+
+        while best_level is not None and compare(best_level.price, price):
+            total_quantity += sum(order.quantity for order in best_level.orders)
+            next_node = tree.successor(best_level.price)
+            best_level = next_node.value if next_node is not None else None
+
+        return total_quantity
+
+    def _quantity(self, price_level: PriceLevel, side: Side):
+        # return accumulated quantity at a given price level
+        if side == Side.BUY:
+            tree = self.bids
+        elif side == Side.SELL:
+            tree = self.asks
+        else:
+            raise ValueError("side must be Side.BUY or Side.SELL")
+
+        level = tree.search(price_level.price)
+        if level is None:
+            return 0
+        return sum(order.quantity for order in level.value.orders)
+
+
     @property
     def shape(self):
         return len(self.bids), len(self.asks)
 
+    # noinspection D
     def send_order(self, order: Order):
         order.price = round(order.price, self.tick_size)
-        tree = self.asks if order.side == 'ask' else self.bids
-        match_tree = self.bids if order.side == 'ask' else self.asks
-
-        get_best = self.bids.top if order.side == 'ask' else self.asks.bottom
-        best_level = get_best()
-        best_level = best_level.value if best_level is not None else None
+        tree = self.asks if order.side == Side.SELL else self.bids
+        match_tree = self.bids if order.side == Side.SELL else self.asks
 
         transactions = []
 
-        if order.side == 'ask':
+        if order.side == Side.SELL:
             def make_transaction(sender, receiver, price, quantity):
                 return Transaction(sender, receiver, price, quantity)
         else:
             def make_transaction(sender, receiver, price, quantity):
                 return Transaction(receiver, sender, price, quantity)
 
-        compare = (lambda x, y: x <= y) if order.side == 'ask' else (lambda x, y: x >= y)
+        compare = (lambda x, y: x <= y) if order.side == Side.SELL else (lambda x, y: x >= y)
+
+        get_best = self.bids.top if order.side == Side.SELL else self.asks.bottom
+        best_level = get_best()
+        best_level = best_level.value if best_level is not None else None
 
         while best_level is not None and compare(order.price, best_level.price) and order.quantity > 0:
             while best_level.orders and order.quantity > 0:
@@ -107,6 +157,33 @@ class OrderBook:
 
     def update_order(self, order):
         self.orders[order.uuid] = order
+
+    def add_asks(self, asks):
+        for price, quantity in asks:
+            order = Order(instrument=None, price=price, quantity=quantity, side=Side.SELL)
+            self.orders[order.uuid] = order
+            self.asks.insert(order.price, PriceLevel(price))
+            self.asks.search(order.price).value.add_order(order)
+
+    def add_bids(self, bids):
+        for price, quantity in bids:
+            order = Order(instrument=None, price=price, quantity=quantity, side=Side.BUY)
+            self.orders[order.uuid] = order
+            self.bids.insert(order.price, PriceLevel(price))
+            self.bids.search(order.price).value.add_order(order)
+
+    def depth(self, n_levels=5, side=None):
+        # returns the top n_levels of bids and asks as two lists of (price, total_quantity)
+        tree = self.bids if side == Side.BUY else self.asks if side == Side.SELL else None
+        if tree is None:
+            raise ValueError("side must be Side.BUY or Side.SELL")
+        for price_level in tree.ordered_traversal():
+            if n_levels <= 0:
+                break
+            level = price_level.value
+            total_quantity = sum(order.quantity for order in level.orders)
+            yield level.price, total_quantity
+            n_levels -= 1
 
     def plot(self, n_levels=5, fig=None, ax=None):
         """
@@ -161,3 +238,4 @@ class OrderBook:
         ax.legend()
 
         return fig, ax
+    

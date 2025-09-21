@@ -9,3 +9,4 @@ launch.json
 dist/
 
 *.h5
+/uv.lock

@@ -31,6 +31,10 @@ class RedBlackTree:
             x.parent.right = y
         y.left = x
         x.parent = y
+    
+    def clear(self):
+        self.root = TNULL
+        self.len = 0
 
     def __len__(self):
         return self.len

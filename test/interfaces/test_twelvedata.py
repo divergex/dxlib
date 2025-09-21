@@ -14,7 +14,7 @@ def convert_symbol(symbol):
 
 class TestTwelveData(unittest.TestCase):
     def setUp(self):
-        self.api = TwelveData("1f085232be684ab4b9c12c5235764443")
+        self.api = TwelveData()
         self.api.start()
 
     def tearDown(self):

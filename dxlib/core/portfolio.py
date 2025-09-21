@@ -14,6 +14,10 @@ def to_tick(x, step):
 
 
 class Portfolio:
+    """
+    A portfolio is a term used to describe a collection of instruments held by an individual or institution.
+    """
+
     quantities: Series
 
     def __init__(self, quantities: Optional[Dict[Instrument, float]] = None):
