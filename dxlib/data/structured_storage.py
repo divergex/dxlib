@@ -59,8 +59,9 @@ class StructuredStorage:
             if c not in df.columns:
                 raise ValueError(f"Timeseries missing required column: {c}")
         # ensure date column is date or datetime
-        if not pl.datatypes.is_datetime(df.schema.get("date", None)) and not pl.datatypes.is_date(df.schema.get("date", None)):
-            # try to cast
+        date_dtype = df.schema.get("date", None)
+        if date_dtype not in (pl.Date, pl.Datetime):
+            # try to cast from string using common iso format
             df = df.with_columns(pl.col("date").str.strptime(pl.Date, "%Y-%m-%d").alias("date"))
         return df
 
@@ -79,7 +80,7 @@ class StructuredStorage:
         """
         df = self._ensure_timeseries_schema(df)
         # convert date columns to date
-        if pl.datatypes.is_datetime(df.schema.get("date", None)):
+        if df.schema.get("date", None) == pl.Datetime:
             df = df.with_columns(pl.col("date").cast(pl.Date))
 
         if not os.path.exists(self.timeseries_path):
