@@ -16,7 +16,7 @@ class FillModel(Protocol):
 
 class QuantityResolver:
     def resolve(self, order: Order, context: TradingInterface) -> float:
-        price = context.market.quote(order.instrument)
+        price = context.market.quote(order.instrument)[order.instrument]
         if isinstance(order.quantity, Size) and order.quantity.is_relative:
             if order.quantity.kind == SizeType.PercentOfEquity:
                 equity = context.account.equity()

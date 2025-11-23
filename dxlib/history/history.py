@@ -187,7 +187,7 @@ class History(TypeRegistry):
         elif self.history_schema != other.history_schema:
             raise ValueError("The schemas of the histories do not match.")
 
-        self.data = pd.concat([self.data, other.data])
+        self.data = pd.concat([self.data if not self.data.empty else None, other.data])
         self.data = self.data.loc[~self.data.index.duplicated(keep=keep)]
         return self
 
@@ -197,7 +197,7 @@ class History(TypeRegistry):
                     keep: Literal["first", "last"] = "first"
                     ) -> "History":
         data = pd.concat([rows], keys=keys)
-        self.data = pd.concat([self.data, data.to_frame()])
+        self.data = pd.concat([self.data if not self.data.empty else None, data.to_frame()])
         self.data = self.data.loc[~self.data.index.duplicated(keep=keep)]
         return self
 

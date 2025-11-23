@@ -46,6 +46,14 @@ class Executor:
         orders = self.strategy.execute(observation, history, history_view)
         self.interface.order.send(orders.data.values.flatten().tolist())
         transactions = self.interface.order.transactions()
+        transactions = History(
+            HistorySchema(
+                orders.history_schema.index,
+                {col: OrderTransaction for col in orders.history_schema.columns},
+            ),
+            orders.data.map(lambda order: transactions.get(order.uuid)).dropna()
+        )
+        return transactions
 
     @property
     def market(self):

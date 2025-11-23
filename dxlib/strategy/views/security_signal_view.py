@@ -32,11 +32,11 @@ class SecuritySignalView(HistoryView):
         return origin.get({self.time_index: [idx]})
 
     def iter(self, origin: History):
-        for idx in origin.index(name=self.time_index):
+        for idx in origin.level_values(name=self.time_index):
             yield self.get(origin, idx)
 
     def price(self, observation: History) -> Tuple[pd.Series, pd.MultiIndex]:
-        idx = observation.index(name=self.time_index).unique()
+        idx = observation.level_values(name=self.time_index).unique()
         return observation.data.reset_index(self.time_index)["close"].rename('price'), idx
 
     def history_schema(self, history_schema: HistorySchema):

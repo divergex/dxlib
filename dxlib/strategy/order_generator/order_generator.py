@@ -18,7 +18,7 @@ class OrderGenerator:
     def generate(self, signals: History) -> History:
         columns = signals.columns
         if 'instrument' not in signals.columns and 'instrument' in signals.indices:
-            signals['instrument'] = signals.index('instrument')
+            signals['instrument'] = signals.level_values('instrument')
         assert "instrument" in signals, ("This OrderGenerator requires a instruments per signal. "
                                           "Try passing with `signals.reset_index('instruments')` if 'instruments' is in the index.")
         orders = signals.apply([(self.to_order, (), {"axis":1}), (lambda x: x.dropna(),)],

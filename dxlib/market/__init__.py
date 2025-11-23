@@ -1,4 +1,4 @@
-from .order_book import OrderBook
-from .transaction import Transaction, OrderTransaction
+from .order_book import OrderBook, PriceLevel
+from .transaction import Transaction
 
 from .orders import *

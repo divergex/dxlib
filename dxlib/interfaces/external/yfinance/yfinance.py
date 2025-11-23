@@ -47,7 +47,7 @@ class YFinance(MarketInterface):
             crumb = m.group(1)
             self._crumb = crumb
         else:
-            raise RuntimeError("No crumb found in HTML")
+            print("No crumb found in HTML")
 
     @property
     def headers(self) -> Dict[str, str]:

@@ -1,9 +1,9 @@
 from typing import List
 
 from dxlib.core import Portfolio, Instrument
+from .order import OrderTransaction
 from .limit_order import LimitOrderFactory
 from .market_order import MarketOrderFactory
-from ..transaction import OrderTransaction
 
 
 class OrderEngine:

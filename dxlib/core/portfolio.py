@@ -169,4 +169,4 @@ class PortfolioHistory(History):
             to_drop = self.data.index.droplevel("instrument") == key
             self.data = self.data.loc[~to_drop]
 
-        self.data = pd.concat([self.data, new_data])
+        self.data = pd.concat([self.data if not self.data.empty else None, new_data])

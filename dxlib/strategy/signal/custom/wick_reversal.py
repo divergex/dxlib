@@ -1,6 +1,6 @@
 import pandas as pd
 
-from dxlib.market import Signal
+from dxlib import Signal
 from dxlib.history import HistorySchema
 from dxlib.strategy.signal import SignalGenerator, SignalStrategy
 

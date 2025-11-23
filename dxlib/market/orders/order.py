@@ -54,3 +54,21 @@ class Order(TypeRegistry):
 
     def is_none(self):
         return self.instrument is None and self.side == Side.NONE
+
+
+class OrderTransaction:
+    def __init__(self, order: Order, price: float, quantity: float):
+        self.order: Order = order
+        self.price = price
+        self.quantity = quantity
+
+    @property
+    def value(self):
+        return self.amount * self.price
+
+    @property
+    def amount(self):
+        return self.order.side.value * self.quantity
+
+    def __str__(self):
+        return f"OrderTransaction({self.order}, {self.price}, {self.quantity})"

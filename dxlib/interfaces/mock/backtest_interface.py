@@ -61,11 +61,13 @@ class BacktestMarketInterface(MarketInterface):
         self.index = None
         self.observation = None
         self.base_security = base_security or Instrument("USD")
-        self.history = History()
+        self.history = History(history_schema=self.context.history.history_schema)
 
         self.prices = pd.Series({self.base_security: 1.0}, name="price", dtype="float")
         self.prices.index.name = "instrument"
-        self.price_history = History()
+        price_schema = self.context.history.history_schema.copy()
+        price_schema.columns = {'price': float}
+        self.price_history = History(price_schema)
 
     def quote(self, security: str | Instrument | List[Instrument] | List[str]) -> pd.Series:
         if isinstance(security, List) and len(security) > 0 and isinstance(security[0], str):
