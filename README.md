@@ -14,12 +14,12 @@
 Built using Python, **dxlib** provides a comprehensive set of tools for the modern quantitative analyst.
 
 It is a modular, extensible library tailored for both individual strategy developers and professional trading funds. 
-Seamlessly integrating with powerful libraries like pandas and numpy, it fits naturally into your existing workflow.
+Seamlessly integrating with powerful libraries like pandas and numpy, it aims to fit naturally into existing workflows.
 
-## Motivation
+# Motivation
 
 Seeing as other libraries related to quantitative development already exist,
-the goal of **dxlib** is to provide a more fledged alternative focusing on maintainability,
+the goal of **dxlib** is to provide a more fledged approach focusing on maintainability,
 extendability and performance. Below, we compare some alternatives:
 
 - **QuandL** has been archived, and **dxlib** is a great alternative.
@@ -31,20 +31,22 @@ At the moment, **dxlib** can be used together with [dxforge](https://github.com/
 for **strategy management**, such as **scheduling**, **automatic containerization** and pre-built networking utils.
 
 
-## Quick Start
+# Quick Start
 
 Take a look at our [Examples](examples).
 
-## Where We Are Now
+# Where We Are Now
 
-All modules and objects serializable, deserializable, and extendable - 
-focusing on thread-safety and lock-free implementations for parallel and/or distributed environments.
-For now, the cache system uses both HDF5 and JSON, 
-and the networking system allows for interfacing with other systems through JSON serialization.
+All modules and objects should become serializable, deserializable, and extendable.
+A great amount of focus is put on thread-safety and lock-free implementations for parallel and/or distributed environments.
+For now, the cache system uses both Parquet and JSON, 
+and the networking system allows for interfacing with other systems through serialization methods.
 
-All modules and classes are built using Domain Driven Design, and are designed to be easily understood and used.
-I myself come from a computer science background,
-and whenever starting a new quant project, always found my code to end up extremely convoluted and messy.
+The main guideline in building new functionalities is to use Domain Driven Design, 
+and modules should designed to be easily understood and used from scratch.
+
+I myself come from a CS background, and whenever starting a new quant project, 
+always found my code to end up extremely convoluted and messy the more each project grew.
 Therefore, I believe creating a library with a strong focus on modularization and performance rather 
 than a collection of scripts is the way to go for professional trading setups.
 
@@ -58,6 +60,10 @@ for easy-to-use strategy prototyping, data analysis and other features!
 - Future encodings are planned to include **FIX**, **SBE**, and **Protobuf**.
 - Future handlers are planned to include **ZeroMQ**, **gRPC** and rough **UDP**.
 
+# Contributing
+
+Contributions are welcome!
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
 
 ## Development Setup
 
