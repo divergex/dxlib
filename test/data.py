@@ -2,7 +2,7 @@ from abc import ABC
 from numbers import Number
 import pandas as pd
 
-from dxlib import HistorySchema, Instrument, InstrumentStore
+from dxlib import History, HistorySchema, Instrument, InstrumentStore
 
 
 class Mock(ABC):
@@ -106,3 +106,10 @@ class Mock(ABC):
             "index_names": ["instrument", "date"],
             "column_names": [""],
         }
+
+    @classmethod
+    def large_history(cls):
+        data = cls.large_data()
+        schema = cls.large_schema()
+
+        return History(schema, data)

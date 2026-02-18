@@ -5,8 +5,8 @@ from typing import Dict, Type, List, Union, Optional, Callable
 import pandas as pd
 from pandas import Series
 
-from .instruments import Instrument
 from dxlib.history import History, HistorySchema
+from .instruments import Instrument
 
 
 def to_tick(x, step):

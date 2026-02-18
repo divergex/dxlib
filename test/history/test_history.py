@@ -1,13 +1,11 @@
-import json
 import unittest
-from datetime import datetime
 from numbers import Number
 
 import pandas as pd
 
 from dxlib import History, HistorySchema
 
-from data import Mock
+from test.data import Mock
 
 
 class TestSchema(unittest.TestCase):

@@ -138,7 +138,7 @@ class Storage:
     def cached(self,
                storage: str,
                expected_type: Type[T],
-               func: callable,
+               func: Callable[..., T],
                *args,
                hash_function: Callable = None,
                **kwargs

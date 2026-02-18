@@ -25,6 +25,9 @@ class InstrumentStore(TypeRegistry):
     def keys(self):
         return self.instruments.keys()
 
+    def symbols(self) -> List[str]:
+        return list(self.instruments.keys())
+
     def values(self):
         return list(self.instruments.values())
 

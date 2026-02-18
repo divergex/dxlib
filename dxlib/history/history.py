@@ -5,11 +5,13 @@ import numpy as np
 import pandas as pd
 
 from dxlib.types import TypeRegistry
+from ..data.storage import Storable, StoredAttribute, AttributeFormat
+
 from .history_schema import HistorySchema
 from .dtype_validation import validate_series_dtype
 
 
-class History(TypeRegistry):
+class History(TypeRegistry, Storable):
     """
     A history is a term used to describe a collection of data points.
 
@@ -19,7 +21,7 @@ class History(TypeRegistry):
     The main purpose of a history is to provide common methods to manipulate and analyze the data, as well as context.
     This is useful for easily storing, retrieving, backtesting and networking data.
     """
-    history_schema: HistorySchema
+    history_schema: HistorySchema = StoredAttribute(AttributeFormat.ANY)
 
     def __init__(self,
                  history_schema: Optional[HistorySchema | dict] = None,
@@ -311,7 +313,7 @@ class History(TypeRegistry):
         elif not isinstance(values, pd.DataFrame):
             raise ValueError("Values must be a dictionary or a DataFrame.")
 
-        # update and then concat only new values, so as to not create repeated rows nor ignore existing column values
+        # update and then concat only new values, to not create repeated rows nor ignore existing column values
         self.data.update(values)
         self.data = pd.concat([self.data, values], sort=False).groupby(level=self.data.index.names).first()
 
