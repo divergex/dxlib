@@ -1,54 +1,50 @@
 import os
 import json
 
-from ..stored_attribute import AttributeFormat
+from ..stored_field import StoredField, FieldFormat
 from ..backend import StorageBackend
+from ...registry import Registry
 
+
+def _ensure_namespace(namespace: str):
+    os.makedirs(namespace, exist_ok=True)
+
+def _filename(namespace: str, key: str) -> str:
+    # ensure namespace exists
+    return os.path.join(namespace, f"{key}.json")
 
 class JSONBackend(StorageBackend):
-    @property
-    def supported_formats(self) -> set[AttributeFormat]:
-        return {AttributeFormat.JSON}
-
-    def __init__(self, root: str):
-        super().__init__()
-        self.root = root
-        os.makedirs(root, exist_ok=True)
-
-    def _path(self, namespace: str) -> str:
-        return os.path.join(self.root, f"{namespace}.json")
-
-    def _load_file(self, namespace: str) -> dict:
-        path = self._path(namespace)
-        if not os.path.exists(path):
-            return {}
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-
-    def _write_file(self, namespace: str, data: dict) -> None:
-        with open(self._path(namespace), "w", encoding="utf-8") as f:
-            json.dump(data, f)
-
-    def load(self, namespace: str, key: str):
-        data = self._load_file(namespace)
-        if key not in data:
-            raise KeyError(key)
-        return data[key]
-
-    def store(self, namespace: str, key: str, data, overwrite: bool) -> None:
-        file_data = self._load_file(namespace)
-        if key in file_data and not overwrite:
-            raise KeyError(key)
-        file_data[key] = data
-        self._write_file(namespace, file_data)
-
     def exists(self, namespace: str, key: str) -> bool:
-        data = self._load_file(namespace)
-        return key in data
+        pass
 
     def delete(self, namespace: str, key: str) -> None:
-        file_data = self._load_file(namespace)
-        if key not in file_data:
-            raise KeyError(key)
-        del file_data[key]
-        self._write_file(namespace, file_data)
+        pass
+
+    @property
+    def supported_formats(self) -> set[FieldFormat]:
+        return {FieldFormat.JSON, FieldFormat.SERIALIZABLE}
+
+    def __init__(self, root):
+        super().__init__(root)
+
+    def store(self, namespace: str, key: str, data, overwrite: bool) -> None:
+        _ensure_namespace(namespace)
+
+        if Registry.is_serializable(data):
+            data = Registry.serialize(data)
+
+        with open(_filename(namespace, key), "w", encoding="utf-8") as file:
+            json.dump(data, file)
+
+    def load(self, namespace: str, key: str, cls) -> bytes:
+        """
+        Raises:
+            ValueError: if key is empty or did not return a valid JSON.
+        """
+        filename = _filename(namespace, key)
+        file = open(filename, "r")
+        data = json.load(file)
+
+        if cls is not None and Registry.is_serializable(cls):
+            return Registry.deserialize(data, cls)
+        return data

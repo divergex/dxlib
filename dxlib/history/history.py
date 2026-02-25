@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from dxlib.types import TypeRegistry
-from ..data.storage import Storable, StoredAttribute, AttributeFormat
+from dxlib.data.storage import Storable, StoredField, FieldFormat
 
 from .history_schema import HistorySchema
 from .dtype_validation import validate_series_dtype
@@ -21,7 +21,8 @@ class History(TypeRegistry, Storable):
     The main purpose of a history is to provide common methods to manipulate and analyze the data, as well as context.
     This is useful for easily storing, retrieving, backtesting and networking data.
     """
-    history_schema: HistorySchema = StoredAttribute(AttributeFormat.ANY)
+    history_schema: HistorySchema = StoredField(FieldFormat.SERIALIZABLE, HistorySchema)
+    data: pd.DataFrame = StoredField(FieldFormat.DATAFRAME, pd.DataFrame)
 
     def __init__(self,
                  history_schema: Optional[HistorySchema | dict] = None,

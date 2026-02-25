@@ -1,4 +1,4 @@
-from .portfolio import Portfolio
+from .portfolio import *
 from .instruments import *
 from .signal import Signal
 

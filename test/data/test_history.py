@@ -2,7 +2,7 @@ import unittest
 
 from dxlib import History
 from dxlib.data import Registry
-from test.data import Mock
+from test.data import MockHistory
 
 
 class TestHistoryDto(unittest.TestCase):
@@ -10,8 +10,8 @@ class TestHistoryDto(unittest.TestCase):
         pass
 
     def test_history(self):
-        data = Mock.large_data()
-        schema = Mock.large_schema()
+        data = MockHistory.large_data()
+        schema = MockHistory.large_schema()
 
         history = History(schema, data)
         print(history)

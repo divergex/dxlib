@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from .stored_attribute import AttributeFormat
+from .stored_field import FieldFormat
 
 
 @dataclass
@@ -13,23 +13,24 @@ class StorageCapabilities:
 
 
 class StorageBackend(ABC):
-    def __init__(self):
+    def __init__(self, root):
         self.capabilities = StorageCapabilities(True, False, True, True)
 
     @property
     @abstractmethod
-    def supported_formats(self) -> set[AttributeFormat]:
+    def supported_formats(self) -> set[FieldFormat]:
         ...
 
-    def supports(self, attribute_format: AttributeFormat) -> bool:
-        return attribute_format in self.supported_formats
+    def supports(self, field_format: FieldFormat) -> bool:
+        return field_format in self.supported_formats
+
 
     @abstractmethod
-    def load(self, namespace: str, key: str) -> bytes:
+    def load(self, namespace: str, key: str, cls) -> bytes:
         ...
 
     @abstractmethod
-    def store(self, namespace: str, key: str, data: bytes, overwrite: bool) -> None:
+    def store(self, namespace: str, key: str, data, overwrite: bool) -> None:
         ...
 
     @abstractmethod
@@ -39,3 +40,4 @@ class StorageBackend(ABC):
     @abstractmethod
     def delete(self, namespace: str, key: str) -> None:
         ...
+

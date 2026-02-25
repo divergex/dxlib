@@ -16,7 +16,7 @@ class ParquetBackend(StorageBackend):
     def _path(self, namespace: str, key: str) -> str:
         return os.path.join(self._dir(namespace), f"{key}.parquet")
 
-    def load(self, namespace: str, key: str) -> bytes:
+    def load(self, namespace: str, key: str, cls: type=None) -> bytes:
         path = self._path(namespace, key)
         df = pd.read_parquet(path)
         return df.iloc[0]["payload"]

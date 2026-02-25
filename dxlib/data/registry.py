@@ -56,10 +56,14 @@ class Registry:
     def registry():
         return _REGISTRY
 
+    @staticmethod
+    def _cls_name(domain_cls):
+        return domain_cls.__qualname__ if isinstance(domain_cls, type) else domain_cls.__class__.__qualname__
+
     @classmethod
     def get(cls, domain_cls):
         try:
-            cls_name = domain_cls.__qualname__ if isinstance(domain_cls, type) else domain_cls.__class__.__qualname__
+            cls_name = cls._cls_name(domain_cls)
             return _REGISTRY[cls_name]
         except KeyError:
             raise KeyError(f"Data model for domain_cls {domain_cls} not in registry.")
@@ -71,3 +75,7 @@ class Registry:
             return _REGISTRY[domain.__class__.__qualname__].from_domain(domain)
         except KeyError:
             raise KeyError(f"Data model for domain {domain} not in registry.")
+
+    @classmethod
+    def is_serializable(cls, value):
+        return cls._cls_name(value) in _REGISTRY

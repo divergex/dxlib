@@ -1,3 +1,4 @@
 from .cache import Cache
-from .storage import Storage, StorageBackend, Storable
-from .stored_attribute import StoredAttribute, AttributeFormat
+from .stored_field import StoredField, FieldFormat
+from .storable import Storable
+from .storage import Storage, StorageBackend

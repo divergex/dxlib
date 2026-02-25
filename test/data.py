@@ -2,10 +2,10 @@ from abc import ABC
 from numbers import Number
 import pandas as pd
 
-from dxlib import History, HistorySchema, Instrument, InstrumentStore
+from dxlib import History, HistorySchema, Instrument, InstrumentStore, Portfolio
 
 
-class Mock(ABC):
+class MockHistory(ABC):
     columns = ["open", "close"]
     stocks = ["AAPL", "MSFT", "GOOG", "AMZN", "FB"]
 
@@ -113,3 +113,18 @@ class Mock(ABC):
         schema = cls.large_schema()
 
         return History(schema, data)
+
+
+class MockPortfolio(ABC):
+    tickers = ["AAPL", "MSFT", "GOOG"]
+
+    @classmethod
+    def small_portfolio(cls):
+        instruments = [Instrument(ticker) for ticker in cls.tickers]
+
+        portfolio = Portfolio({
+            instruments[0]: 10,
+            instruments[1]: 10,
+            instruments[2]: 10,
+        })
+        return portfolio

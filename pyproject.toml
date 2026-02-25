@@ -43,6 +43,7 @@ dependencies = [
     "statsmodels~=0.14.4",
     "transaction>=5.0",
     "uvicorn~=0.34.0",
+    "tables>=3.10.1",
 ]
 
 [tool.setuptools.packages.find]

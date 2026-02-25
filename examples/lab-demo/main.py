@@ -8,7 +8,9 @@ import dxlib as dx
 from data import cached_data
 
 def main():
-    history = cached_data()
+    history, portfolio = cached_data()
+    print(history)
+    print(portfolio)
 
 
 if __name__ == "__main__":

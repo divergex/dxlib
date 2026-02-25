@@ -1,4 +1,3 @@
-import uuid
 from typing import Dict, List
 
 from dxlib.types import TypeRegistry

@@ -5,12 +5,12 @@ import pandas as pd
 
 from dxlib import History, HistorySchema
 
-from test.data import Mock
+from test.data import MockHistory
 
 
 class TestSchema(unittest.TestCase):
     def test_create(self):
-        schema = Mock.schema()
+        schema = MockHistory.schema()
         self.assertEqual({"instruments": str, "date": pd.Timestamp}, schema.index)
         self.assertEqual({"open": float, "close": float}, schema.columns)
         self.assertIs(schema.index["instruments"], str)
@@ -18,14 +18,14 @@ class TestSchema(unittest.TestCase):
 
 class TestHistory(unittest.TestCase):
     def test_create(self):
-        h = History(Mock.schema(), Mock.tight_data())
+        h = History(MockHistory.schema(), MockHistory.tight_data())
         self.assertEqual(["instruments", "date"], h.indices)
         self.assertEqual(["open"], h.columns)
-        self.assertEqual(Mock().stocks, h.levels("instruments"))
+        self.assertEqual(MockHistory().stocks, h.levels("instruments"))
 
     def test_concat(self):
-        h = History(Mock.schema(), Mock.tight_data())
-        h2 = History(Mock.schema(), Mock.small_data())
+        h = History(MockHistory.schema(), MockHistory.tight_data())
+        h2 = History(MockHistory.schema(), MockHistory.small_data())
 
         h.concat(h2)
         self.assertEqual(8, len(h.data))
@@ -33,8 +33,8 @@ class TestHistory(unittest.TestCase):
         self.assertEqual(2, len(h.data.index.names))
 
     def test_extend(self):  # Expand columns and ignore repeated columns
-        h = History(Mock.schema(), Mock.tight_data())
-        h2 = History(Mock.large_schema(), Mock.large_data())
+        h = History(MockHistory.schema(), MockHistory.tight_data())
+        h2 = History(MockHistory.large_schema(), MockHistory.large_data())
 
         h.extend(h2)
         self.assertEqual(17, len(h.data))
@@ -42,7 +42,7 @@ class TestHistory(unittest.TestCase):
         self.assertEqual(2, len(h.data.index.names))
 
     def test_get(self):
-        h = History(Mock.large_schema(), Mock.large_data())
+        h = History(MockHistory.large_schema(), MockHistory.large_data())
 
         h2 = h.get(index={"instruments": ["FB", "AMZN"]})
         self.assertEqual(6, len(h2.data))
@@ -50,12 +50,12 @@ class TestHistory(unittest.TestCase):
     def test_get_range(self):
         date_range = {"date": slice(None)}
 
-        h = History(Mock.large_schema(), Mock.large_data())
+        h = History(MockHistory.large_schema(), MockHistory.large_data())
         h2 = h.get(index=date_range)
         self.assertEqual(17, len(h2.data))
 
     def test_apply(self):
-        h = History(Mock.large_schema(), Mock.large_data())
+        h = History(MockHistory.large_schema(), MockHistory.large_data())
 
         result = h.apply({"instruments": lambda df: df.pct_change()})
 

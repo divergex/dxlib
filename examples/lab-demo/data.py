@@ -21,9 +21,12 @@ def get_data():
     return history
 
 def test_data():
-    history = test.data.Mock.large_history()
+    history = test.data.MockHistory.large_history()
     return history
 
+def test_portfolio():
+    portfolio = test.data.MockPortfolio.small_portfolio()
+    return portfolio
 
 def cached_data():
     # lets cache it
@@ -31,5 +34,6 @@ def cached_data():
     namespace = "data"
 
     history = storage.cache(namespace, dx.History, test_data)
+    portfolio = storage.cache(namespace, dx.Portfolio, test_portfolio)
 
-    return history
+    return history, portfolio

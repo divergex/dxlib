@@ -1,6 +1,6 @@
 from typing import Dict
 
-from .stored_attribute import StoredAttribute
+from .stored_field import StoredField
 
 _FIELD_LAYOUT_KEY = "_storable_field_layout"
 
@@ -15,7 +15,7 @@ class StorableMeta(type):
             field_layout.update(layout)
 
         for key, value in namespace.items():
-            if isinstance(value, StoredAttribute):
+            if isinstance(value, StoredField):
                 value.name = key
                 field_layout[key] = value
 
@@ -25,5 +25,8 @@ class StorableMeta(type):
 
 class Storable(metaclass=StorableMeta):
     @classmethod
-    def fields(cls) -> Dict[str, StoredAttribute]:
+    def stored_fields(cls) -> Dict[str, StoredField]:
         return getattr(cls, _FIELD_LAYOUT_KEY, {})
+
+    def from_data(self, *args, **kwargs):
+        pass

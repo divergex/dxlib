@@ -1,11 +1,11 @@
 import unittest
 
-from test.data import Mock
+from test.data import MockHistory
 
 
 class TestIndicatorFilters(unittest.TestCase):
     def setUp(self):
-        self.mock = Mock()
+        self.mock = MockHistory()
         self.data = self.mock.large_data()
         self.schema = self.mock.large_schema()
 

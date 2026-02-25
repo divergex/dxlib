@@ -27,7 +27,6 @@ class Cache(Storage):
                ):
         func_name = func.__name__
         key = hash_function(func_name, *args, **kwargs) if hash_function else self._hash(func_name, *args, **kwargs)
-        cache_path = self.path(storage)
 
         return True
 
@@ -43,8 +42,8 @@ class Cache(Storage):
         key = hash_function(func_name, *args, **kwargs) if hash_function else self._hash(func_name, *args, **kwargs)
 
         try:
-            return self.load(namespace, key, expected_type).to_domain()
-        except (KeyError, FileNotFoundError):
+            return self.load(namespace, key, expected_type)
+        except (ValueError, FileNotFoundError):
             obj = func(*args, **kwargs)
             self.store(namespace, key, obj, overwrite=True)  # None.
             return obj

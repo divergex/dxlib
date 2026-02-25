@@ -3,7 +3,7 @@ import unittest
 import pandas as pd
 
 from dxlib import History, HistorySchema, Executor, Strategy
-from test.data import Mock
+from test.data import MockHistory
 
 
 class TestExecutor(unittest.TestCase):
@@ -20,8 +20,8 @@ class TestExecutor(unittest.TestCase):
         self.strategy = MyStrategy(self.output_schema)
 
         self.history = History(
-            schema=Mock.schema,
-            data=Mock.large_data
+            schema=MockHistory.schema,
+            data=MockHistory.large_data
         )
 
     def test_executor(self):

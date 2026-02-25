@@ -5,7 +5,7 @@ from pydantic import Field, BaseModel
 
 from dxlib.history import History, HistorySchema
 
-from ..serializable import Serializable
+from ..data.serializable import Serializable
 
 
 class HistorySchemaDto(BaseModel, Serializable[HistorySchema]):
