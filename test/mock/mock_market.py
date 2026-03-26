@@ -23,7 +23,7 @@ class MockMarket(MarketInterface):
         columns = ["open", "high", "low", "close", "volume"]
         date = pd.date_range(start=start, end=end, periods=n)
 
-        index = pd.MultiIndex.from_product([symbols, date], names=["instruments", "date"])
+        index = pd.MultiIndex.from_product([symbols, date], names=["instrument", "date"])
 
         data = pd.DataFrame(index=index, columns=columns)
 

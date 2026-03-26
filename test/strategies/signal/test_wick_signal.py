@@ -2,24 +2,29 @@ import unittest
 
 import pandas as pd
 
+from dxlib import OrderGenerator
 from dxlib.core.signal import Signal
-from dxlib.interfaces import MockMarket
 from dxlib.strategy.signal import SignalStrategy
 from dxlib.strategy.signal.custom.wick_reversal import WickReversal
 from dxlib.strategy.views import SecuritySignalView
 
+from test.mock import MockHistory
+
 
 class TestRsi(unittest.TestCase):
     def setUp(self):
-        mock = MockMarket()
-        self.history = mock.historical(mock.securities(), n=10, random_seed=42)
+        self.history = MockHistory.large_history()
 
     def test_rsi(self):
-        wick = SignalStrategy(WickReversal(), history_view=SecuritySignalView(["close", "open", "high", "low"]))
+        signal = WickReversal()
+        order_generator = OrderGenerator()
+        signal_strategy = SignalStrategy(signal, order_generator)
+
+        view = SecuritySignalView()
 
         observation = self.history.data.index[-1]
         observation = self.history.loc(index=[observation])
-        result = wick.execute(observation, self.history)
+        result = signal_strategy.execute(observation, self.history, view)
         data = result.data
         data = data.dropna()
 
