@@ -4,6 +4,7 @@ from typing import Dict, Type, List, Optional, Callable
 import pandas as pd
 
 from dxlib.history import History, HistorySchema
+from .portfolio import Portfolio
 
 
 class PortfolioHistory(History):
@@ -17,7 +18,7 @@ class PortfolioHistory(History):
                  schema_index: Dict[str, Type],
                  data: Optional[pd.DataFrame | dict] = None):
         assert "instrument" in list(
-            schema_index.keys()), "Index can not be converted to portfolio type. Must have instruments indexed at some level."
+            schema_index.keys()), "Index can not be converted to portfolio type. Must have `instrument` indexed at some level."
         schema = HistorySchema(
             index=schema_index,
             columns={"quantity": Number},
@@ -43,14 +44,14 @@ class PortfolioHistory(History):
 
         return values.apply({tuple(set(schema.index_names) - {"instrument"}): lambda x: x.sum()})
 
-    def insert(self, key: pd.MultiIndex, portfolio: "Portfolio"):
+    def insert(self, key: pd.MultiIndex, portfolio: Portfolio):
         df = portfolio.to_frame()
         if not df.empty:
             key = key.droplevel("instrument").unique().item()
             portfolio = pd.concat({key: df}, names=list(set(self.history_schema.index_names) - {"instrument"}))
             self.data = pd.concat([self.data, portfolio])
 
-    def update(self, key: pd.MultiIndex | pd.Index, portfolio: "Portfolio"):
+    def update(self, key: pd.Index, portfolio: Portfolio):
         df = portfolio.to_frame()
         if df.empty:
             return

@@ -5,12 +5,12 @@ import pandas as pd
 from dxlib import History, HistorySchema, Executor, Strategy
 from dxlib.interfaces import BacktestInterface
 from dxlib.strategy.views import SecurityPriceView
-from test.data import MockHistory
+from test.mock import MockHistory
 
 
 def output_schema():
     return HistorySchema(
-        index={"instruments": str, "date": pd.Timestamp},
+        index={"instrument": str, "date": pd.Timestamp},
         columns={"open": float, "close": float},
     )
 

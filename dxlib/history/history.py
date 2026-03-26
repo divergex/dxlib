@@ -1,14 +1,19 @@
 from functools import reduce
-from typing import Dict, List, Union, Optional, Literal
+from typing import Dict, List, Union, Optional, Literal, Callable, Any
 
 import numpy as np
 import pandas as pd
+from pandas import Index
 
 from dxlib.types import TypeRegistry
 from dxlib.data.storage import Storable, StoredField, FieldFormat
 
 from .history_schema import HistorySchema
 from .dtype_validation import validate_series_dtype
+
+
+def indices(data: pd.DataFrame) -> List[str]:
+    return data.index.names if data.index is not None else []
 
 
 class History(TypeRegistry, Storable):
@@ -56,7 +61,13 @@ class History(TypeRegistry, Storable):
             try:
                 data: pd.DataFrame = pd.DataFrame.from_dict(data, orient="tight")
             except KeyError:
-                raise ValueError("Data must be of the pandas format 'tight'.")
+                tight_format_keys = {"index", "columns", "data", "index_names", "column_names"}
+                missing = tight_format_keys - data.keys()
+                raise ValueError(
+                    f"Data dict is missing required keys for pandas 'tight' format: {missing}. "
+                    f"Required keys: {tight_format_keys}. "
+                    f"See https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_dict.html"
+                )
         elif isinstance(data, list):
             data: pd.DataFrame = pd.DataFrame(data)
         elif data is None:
@@ -68,7 +79,7 @@ class History(TypeRegistry, Storable):
                 self.data = pd.DataFrame()
                 return
         else:
-            raise TypeError("Invalid data type.")
+            raise TypeError(f"Invalid data type {type(data)}.")
 
         # test if self.data index is in accordance to schema
         self.data: pd.DataFrame = self.validate(data)
@@ -115,7 +126,7 @@ class History(TypeRegistry, Storable):
         Returns:
             str: The name of the index.
         """
-        return self.data.index.names[idx]
+        return str(self.data.index.names[idx])
 
     def levels(self, names: List[str] | str = None, to_list=True) -> list | Dict[str, list]:
         """
@@ -135,7 +146,7 @@ class History(TypeRegistry, Storable):
             return {name: self.levels(name) for name in (names if names else self.indices)}
 
     @property
-    def index(self) -> pd.MultiIndex | pd.Index:
+    def index(self) -> Union[pd.MultiIndex, pd.Index]:
         return self.data.index
 
     def level_values(self, name: str):
@@ -224,7 +235,7 @@ class History(TypeRegistry, Storable):
         # self.data.T.groupby(self.data.columns).first().T
         return self
 
-    def loc(self, index: List[Union[tuple, str]] = None, columns: List[str] | str = None) -> "History":
+    def loc(self, index: Union[List[tuple], List[Any], Index] = None, columns: List[str] | str = None) -> "History":
         """byu
         Get a subset of the history, given values or a slice of desired index values for each index.
 
@@ -322,7 +333,7 @@ class History(TypeRegistry, Storable):
            other: "History",
            columns: List[any],
            other_columns: List[any],
-           operation: callable) -> "History":
+           operation: Callable) -> "History":
         """
         Apply a given callable operation on matching indices of self and other,
         for all cartesian product of columns x other_columns.
@@ -379,7 +390,7 @@ class History(TypeRegistry, Storable):
         kwargs = item[2] if len(item) > 2 else {}
         return data.apply(f, *args, **kwargs)
 
-    def apply(self, func: Dict[str | List[str], callable] | callable | List[callable], *args, output_schema=None,
+    def apply(self, func: Union[Dict[str | List[str], Callable], Callable, List[callable]], *args, output_schema=None,
               **kwargs) -> "History":
         data = self.data
 
@@ -393,7 +404,7 @@ class History(TypeRegistry, Storable):
         if isinstance(data, pd.DataFrame):
             if not output_schema:
                 output_schema = HistorySchema(
-                    index={name: self.history_schema.index.get(name) for name in data.index.names},
+                    index={name: self.history_schema.index.get(name) for name in indices(data)},
                     columns={name: self.history_schema.columns.get(name) for name in data.columns}
                 )
         elif isinstance(data, pd.Series):

@@ -94,7 +94,7 @@ class InvestingCom(market_interface.MarketInterface):
 
         data = pd.DataFrame({
             'date': pd.to_datetime(response['t'], unit='s'),
-            'instruments': params['symbol'],
+            'instrument': params['symbol'],
             'close': response['c'],
             'open': response['o'],
             'high': response['h'],
@@ -102,7 +102,7 @@ class InvestingCom(market_interface.MarketInterface):
             'volume': response['v']
         })
 
-        data.set_index(['date', 'instruments'], inplace=True)
+        data.set_index(['date', 'instrument'], inplace=True)
 
         return History(schema, data)
 

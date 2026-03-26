@@ -2,7 +2,7 @@ import pandas as pd
 
 from dxlib import Signal
 from dxlib.history import HistorySchema
-from dxlib.strategy.signal import SignalGenerator, SignalStrategy
+from dxlib.strategy.signal import SignalGenerator
 
 
 class WickReversal(SignalGenerator):
@@ -50,3 +50,10 @@ class WickReversal(SignalGenerator):
         schema = history_schema.copy()
         schema.columns = {"signal": Signal}
         return schema
+
+    def validate(self, data: pd.DataFrame, history_schema: HistorySchema):
+        # for now, only validate if columns are OHLC
+        required_columns = {"open", "high", "low", "close"}
+        data_columns = set (history_schema.column_names)
+        if not required_columns.issubset(data_columns):
+            raise ValueError(f"Data with columns {data_columns} does not contain required columns {required_columns}.")

@@ -4,19 +4,17 @@ from numbers import Number
 
 import pandas as pd
 
-from dxlib import Portfolio, Security, HistorySchema, History
+from dxlib import Portfolio, HistorySchema, History, Instrument
 from dxlib.core.portfolio import PortfolioHistory
 
 
 class TestPortfolio(unittest.TestCase):
     def test_portfolio(self):
-        p = Portfolio()
-
-        p2 = Portfolio({Security("AAPL"): 2})
-        print(p2)
+        p = Portfolio({Instrument("AAPL"): 2})
+        print(p)
 
     def test_value(self):
-        sec = [Security("AAPL"), Security("MSFT")]
+        sec = [Instrument("AAPL"), Instrument("MSFT")]
         p = Portfolio({sec[0]: 2, sec[1]: 2})
         prices = pd.Series({sec[0]: 100, sec[1]: 250})
 
@@ -25,26 +23,26 @@ class TestPortfolio(unittest.TestCase):
 
 class TestPortfolioHistory(unittest.TestCase):
     def test_history(self):
-        sec = [Security("AAPL"), Security("MSFT")]
+        sec = [Instrument("AAPL"), Instrument("MSFT")]
         ph2 = PortfolioHistory(
-            schema_index={"instruments": Security, "date": date},
+            schema_index={"instrument": Instrument, "date": date},
             data={
                 'index': [(sec[0], date(2021, 1, 1)), (sec[1], date(2021, 1, 1))],
                 'columns': ["quantity"],
                 'data': [[2], [2]],
-                'index_names': ["instruments", "date"],
+                'index_names': ["instrument", "date"],
                 'column_names': [None]
             }
         )
         print(ph2)
 
     def test_value(self):
-        sec = [Security("AAPL"), Security("MSFT")]
+        sec = [Instrument("AAPL"), Instrument("MSFT")]
         index = pd.MultiIndex.from_product([[date(2021, 1, 1), date(2021, 1, 2)], sec], names=["date", "instruments"])
 
         prices = History(
             HistorySchema(
-                index={"instruments": Security, "date": date},
+                index={"instrument": Instrument, "date": date},
                 columns={"open": Number, "close": Number},
             ),
             pd.DataFrame(
@@ -54,18 +52,18 @@ class TestPortfolioHistory(unittest.TestCase):
         )
 
         ph = PortfolioHistory(
-            schema_index={"instruments": Security, "date": date},
+            schema_index={"instrument": Instrument, "date": date},
             data=pd.DataFrame({"quantity": [1, 2, 2, 1]}, index=index),
         )
 
         print(ph.value(prices, "close"))
 
     def test_insert(self):
-        sec = [Security("AAPL"), Security("MSFT")]
+        sec = [Instrument("AAPL"), Instrument("MSFT")]
         index = pd.MultiIndex.from_product([[date(2021, 1, 1), date(2021, 1, 2)], sec], names=["date", "instruments"])
 
         ph = PortfolioHistory(
-            schema_index={"instruments": Security, "date": date},
+            schema_index={"instruments": Instrument, "date": date},
             data=pd.DataFrame({"quantity": [1, 2, 2, 1]}, index=index),
         )
 

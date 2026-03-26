@@ -7,7 +7,11 @@ from .instrument import Instrument
 class InstrumentStore(TypeRegistry):
     def __init__(self, instruments: Dict[str, Instrument] = None):
         super().__init__()
-        self.instruments: Dict[str, Instrument] = instruments or {}
+        self._instruments: Dict[str, Instrument] = instruments or {}
+
+    @property
+    def instruments(self):
+        return self._instruments
 
     def get(self, symbol: str, default=None):
         return self.instruments.get(symbol, default)

@@ -15,8 +15,8 @@ class SecuritySignalView(HistoryView):
         self._apply = self._apply_col if columns is None else self._apply_col
 
     def len(self, history: History):
-        indices = history.index(name=self.time_index)
-        return len(indices.unique())
+        indices = history.levels(self.time_index)
+        return len(indices)
 
     @classmethod
     def _apply_simple(cls, history: History, function: Callable, output_schema: Optional[HistorySchema]):
@@ -35,7 +35,7 @@ class SecuritySignalView(HistoryView):
         for idx in origin.level_values(name=self.time_index):
             yield self.get(origin, idx)
 
-    def price(self, observation: History) -> Tuple[pd.Series, pd.MultiIndex]:
+    def price(self, observation: History) -> Tuple[pd.Series, pd.Index]:
         idx = observation.level_values(name=self.time_index).unique()
         return observation.data.reset_index(self.time_index)["close"].rename('price'), idx
 

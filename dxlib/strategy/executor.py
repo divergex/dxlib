@@ -14,46 +14,30 @@ class Executor:
 
         if context_fn is not None:
             self.context_fn = context_fn
-            self._execute = self._execute_context
+            self.execute = self._execute_context
         else:
-            self._execute = self._execute_contextless
+            self.execute = self._execute_contextless
 
-    def _execute_context(self,
-                         observation: History,
-                         history: History,
-                         history_view: HistoryView
-                         ) -> History:
+    def _execute(self, observation: History, history: History, history_view: HistoryView, context = None) -> History:
+        orders = self.strategy.execute(observation, history, history_view, context=context)
         history.concat(observation)
+
+        self.interface.order.send(orders.data.values.flatten().tolist())
+        transactions = self.interface.order.transactions()
+        return History(
+            HistorySchema(
+                orders.history_schema.index,
+                {col: OrderTransaction for col in orders.history_schema.columns},
+            ),
+            orders.data.map(lambda order: transactions.get(order.uuid)).dropna()
+        )
+
+    def _execute_context(self, observation, history, history_view) -> History:
         context = self.context_fn(observation, history, history_view)
-        orders = self.strategy.execute(observation, history, history_view, context)
-        self.interface.order.send(orders.data.values.flatten().tolist())
-        transactions = self.interface.order.transactions()
-        transactions = History(
-            HistorySchema(
-                orders.history_schema.index,
-                {col: OrderTransaction for col in orders.history_schema.columns},
-            ),
-            orders.data.map(lambda order: transactions.get(order.uuid)).dropna()
-        )
-        return transactions
+        return self._execute(observation, history, history_view, context)
 
-    def _execute_contextless(self,
-                             observation: History,
-                             history: History,
-                             history_view: HistoryView
-                             ) -> History:
-        history.concat(observation)
-        orders = self.strategy.execute(observation, history, history_view)
-        self.interface.order.send(orders.data.values.flatten().tolist())
-        transactions = self.interface.order.transactions()
-        transactions = History(
-            HistorySchema(
-                orders.history_schema.index,
-                {col: OrderTransaction for col in orders.history_schema.columns},
-            ),
-            orders.data.map(lambda order: transactions.get(order.uuid)).dropna()
-        )
-        return transactions
+    def _execute_contextless(self, observation, history, history_view) -> History:
+        return self._execute(observation, history, history_view)
 
     @property
     def market(self):

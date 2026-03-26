@@ -9,8 +9,9 @@ from .history import *
 from .core import *
 from .benchmark import *
 from .strategy import *
+from .market import *
 
 
-__all__ = ['interfaces', 'strategy', 'core']
+__all__ = ['interfaces', 'strategy', 'core', 'market']
 __all__ += core.__all__
 __all__ += history.__all__

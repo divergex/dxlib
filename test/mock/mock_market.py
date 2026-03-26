@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 
 import pandas as pd
 import numpy as np
@@ -8,32 +8,34 @@ from dxlib.interfaces import MarketInterface
 
 
 class MockMarket(MarketInterface):
-    def securities(self):
-        return ["AAPL", "MSFT", "PETR4.SA"]
+    def __init__(self):
+        self.seed = None
+        self.rows = None
+
+    def setup(self, seed, rows):
+        self.seed = seed
+        self.rows = rows
+        np.random.seed(self.seed)
 
     def historical(
             self,
             symbols: list[str],
-            start: datetime = datetime.datetime(2021, 1, 1),
-            end: datetime = datetime.datetime(2021, 1, 31),
+            start: datetime = datetime(2021, 1, 1),
+            end: datetime = datetime(2021, 1, 31),
             interval: str = "1d",
-            n=100,
-            random_seed: int = None
+            **kwargs
     ) -> History:
-        columns = ["open", "high", "low", "close", "volume"]
+        assert self.rows is not None
         date = pd.date_range(start=start, end=end, periods=n)
-
         index = pd.MultiIndex.from_product([symbols, date], names=["instrument", "date"])
+        columns = ["open", "high", "low", "close", "volume"]
 
         data = pd.DataFrame(index=index, columns=columns)
 
         data.index.name = "date"
 
-        if random_seed is not None:
-            np.random.seed(random_seed)
-
         for column in columns:
-            data[column] = np.random.rand(n * len(symbols))
+            data[column] = np.random.rand(self.rows * len(symbols))
 
         return History(
             history_schema=self.history_schema,

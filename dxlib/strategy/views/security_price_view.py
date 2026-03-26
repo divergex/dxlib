@@ -14,18 +14,20 @@ class SecurityPriceView(HistoryView):
         return history_schema.copy()
 
     def len(self, history: History):
-        return len(history.index(name=self.time_index).unique())
+        indices = history.levels(self.time_index)
+        return len(indices)
 
     def apply(self, history: History, function: Callable, output_schema: HistorySchema = None):
         return history.get(columns=["price"]).apply({self.time_index: function}, output_schema=output_schema)
 
-    def price(self, observation: History) -> Tuple[pd.Series, pd.MultiIndex]:
-        idx = observation.index(name=self.time_index).unique()
-        return observation.data.reset_index(self.time_index)["price"], idx
+    def price(self, observation: History) -> Tuple[pd.Series, pd.Index]:
+        idx = observation.level_values(name=self.time_index).unique()
+        # return observation.data.reset_index(self.time_index)["price"], idx
+        return observation.data.reset_index(self.time_index)["close"].rename('price'), idx
 
     def get(self, origin: History, idx):
         if isinstance(idx, int) and idx < 0:
-            times = sorted(origin.index(name=self.time_index).unique())
+            times = sorted(origin.levels(self.time_index))
             try:
                 idx = times[idx]
             except IndexError:
@@ -33,5 +35,5 @@ class SecurityPriceView(HistoryView):
         return origin.get({self.time_index: [idx]}, ["price"])
 
     def iter(self, origin: History):
-        for idx in origin.index(name=self.time_index):
+        for idx in origin.level_values(self.time_index):
             yield self.get(origin, idx)

@@ -24,7 +24,7 @@ class OrderGenerator:
         orders = signals.apply([(self.to_order, (), {"axis":1}), (lambda x: x.dropna(),)],
                                output_schema=HistorySchema(
                                    index=signals.history_schema.index.copy(),
-                                   columns={key: Order for key in columns},
+                                   columns={key: Order for key in columns if key != "instrument"},
                                ))
         return orders
 

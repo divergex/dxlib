@@ -4,7 +4,7 @@ from uuid import UUID
 from sortedcontainers import SortedDict
 
 from ..transaction import Transaction
-from ..orders.order import Order, Side
+from ..order.order import Order, Side
 
 from .price_level import PriceLevel
 

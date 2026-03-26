@@ -1,5 +1,3 @@
-from typing import Type
-
 from dxlib.history import History, HistorySchema, HistoryView
 from dxlib.market import Order
 from ..order_generator import OrderGenerator
@@ -12,13 +10,17 @@ class SignalStrategy(Strategy):
         self.signal_generator = signal_generator
         self.order_generator = order_generator
 
+    def validate(self, observation: History, history_view: HistoryView):
+        return self.signal_generator.validate(observation.data, history_view.history_schema(observation.history_schema))
+
     def execute(self,
                 observation: History,
                 history: History,
-                history_view: Type[HistoryView],
+                history_view: HistoryView,
                 *args, **kwargs) -> History:
         input_schema = history_view.history_schema(history.history_schema)
         signal_schema = self.signal_generator.output_schema(input_schema)
+
         def _generate(data):
             return self.signal_generator.generate(data, input_schema)
 

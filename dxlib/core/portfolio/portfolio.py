@@ -21,7 +21,12 @@ class Portfolio(Storable):
     def __init__(self,
                  quantities: Optional[Union[Dict[Instrument, float], pd.Series]] = None
                  ):
-        self.quantities: pd.Series = pd.Series(quantities, dtype=float) if quantities else pd.Series()
+        assert isinstance(quantities, (dict, pd.Series)) or quantities is None
+        if isinstance(quantities, pd.Series):
+            self.quantities = quantities
+        elif isinstance(quantities, dict):
+            self.quantities: pd.Series = pd.Series(quantities, dtype=float)
+        else: self.quantities = pd.Series()
 
     def value(self,
               prices: Union[pd.Series, Dict[Instrument, float]]
@@ -29,7 +34,7 @@ class Portfolio(Storable):
         if isinstance(prices, pd.Series):
             return sum(prices * self.quantities)
         else:
-            return sum([prices[security] * self.quantities[security] for security in self.securities])
+            return sum([prices.get(security, 0) * self.quantities[security] for security in self.securities])
 
     def weight(self,
                prices: Union[pd.Series | Dict[Instrument, float]]
