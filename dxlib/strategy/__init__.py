@@ -1,6 +1,7 @@
 from . import signal
 from . import strategy
 from . import views
+from . import rule
 
 from .executor import Executor
 from .order_generator import  OrderGenerator

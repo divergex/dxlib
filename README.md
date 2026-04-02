@@ -16,6 +16,14 @@ Built using Python, **dxlib** provides a comprehensive set of tools for the mode
 It is a modular, extensible library tailored for both individual strategy developers and professional trading funds. 
 Seamlessly integrating with powerful libraries like pandas and numpy, it aims to fit naturally into existing workflows.
 
+# Installation
+
+The package is available through `pip`. Install with
+```bash
+pip install dxlib
+```
+
+
 # Motivation
 
 Seeing as other libraries related to quantitative development already exist,

@@ -2,7 +2,12 @@ import pytest
 from uuid import uuid4
 
 from dxlib import Instrument
-from dxlib.market import OrderBook, OrderBookV1, PriceLevel, Order, Side, Transaction  # adjust import
+# from dxlib.market import OrderBook, OrderBookV1, PriceLevel, Order, Side, Transaction  # adjust import
+
+from dxcore import order_book as dxcore
+
+from dxcore.order_book import OrderBook
+
 
 instrument = Instrument("MSFT")
 
